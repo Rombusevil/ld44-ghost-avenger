@@ -756,7 +756,7 @@ function game_state(lvl)
     local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4) add(spawns, sp4)
     s.update=function()
         if #spawns == 0 then
-            curstate=win_state()
+            curstate=win_state(p,zkills)
         end
         t+=1
         local cx=0
@@ -816,7 +816,7 @@ function game_state(lvl)
     return s
 end
 
-function gameover_state()
+function gameover_state(points, kills)
     local s={}
     local texts={}
     local timeout=2 
@@ -825,12 +825,13 @@ function gameover_state()
     music(-1)
     sfx(-1)
     local ty=15
+    add(texts, tutils({text="game over",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         " ,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="points:                  ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
+    add(texts, tutils({text="        "..points,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
+    add(texts, tutils({text="kills:                   ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
+    add(texts, tutils({text="        "..kills,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
     local restart_msg = "press ❎ to restart"
     local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
     add(texts, msg)
@@ -917,7 +918,8 @@ end
 -- to enable mouse support uncomment all of the following commented lines:
 -- poke(0x5f2d, 1) -- enables mouse support
 function _init()
-    curstate=menu_state()
+    --curstate=menu_state()
+    curstate=gameover_state(544,11)
     -- curstate=win_state(543,140)
 end
 

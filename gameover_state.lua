@@ -1,5 +1,5 @@
 -- state
-function gameover_state()
+function gameover_state(points, kills)
     local s={}
     local texts={}
     local timeout=2 -- for avoiding the user hitting X while playing and by that dismissing this screen. In seconds
@@ -12,12 +12,13 @@ function gameover_state()
     sfx(-1)
     
     local ty=15
+    add(texts, tutils({text="game over",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         " ,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="points:                  ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
+    add(texts, tutils({text="        "..points,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
+    add(texts, tutils({text="kills:                   ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
+    add(texts, tutils({text="        "..kills,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
 
     local restart_msg = "press ❎ to restart"
     local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
@@ -25,7 +26,7 @@ function gameover_state()
 
     s.update=function()
         timeout -= 1/60
-        if(btnp(5) and timeout <= 0) curstate=game_state() -- "X"
+        if(btnp(5) and timeout <= 0) curstate=menu_state() -- "X"
     end
 
     cls()

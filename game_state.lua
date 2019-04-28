@@ -517,8 +517,7 @@ function game_state(lvl)
 
     s.update=function()
         if #spawns == 0 then
-            -- TODO: pasar points y kills
-            curstate=win_state()
+            curstate=win_state(p,zkills)
         end
 
         t+=1
