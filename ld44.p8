@@ -343,9 +343,16 @@ function game_state(lvl)
     local s={}
     local updas={}
     local draws={}
+    local spawns={}
     local zmbs={}
+    local clos={}
     local shake=0
     local exp=circle_explo()
+    local zkills=0  
+    local bt=0      
+    local bf=true   
+    local t=0       
+    local ct=0      
     function sword(x,y,h)
         local anim_obj=anim()
         anim_obj:add(52,1,1,1,1) 
@@ -361,6 +368,7 @@ function game_state(lvl)
         anim_obj:add(84,4,0.75,1,2,true,ad) 
         local bounds_obj=bbox(8,16, 0,0,0,4)
         e:set_bounds(bounds_obj)
+        e.dmg=1
         function e:update()
             local xo=0
             local yo=0
@@ -371,7 +379,12 @@ function game_state(lvl)
                 yo=-3
                 for z in all(zmbs) do
                     if collides(z,e) then
-                        z:hurt(1)
+                        z:hurt(e.dmg)
+                    end
+                end
+                for s in all(spawns) do
+                    if collides(s,e) then
+                        s:hurt(e.dmg)
                     end
                 end
             end
@@ -452,7 +465,7 @@ function game_state(lvl)
             if(e.atk)e.swrd:draw()
             local hbl=7 
             local hb=e.health*hbl/e.mhealth 
-            rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 9)
+            rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 8)
             rectfill(e.x,e.y-4, e.x+hb,  e.y-3, 3)
         end
         function e:stop_atk()
@@ -492,12 +505,12 @@ function game_state(lvl)
             e:_draw()    
             local hbl=15 
             local hb=e.health*hbl/e.mhealth 
-            rectfill(x,y-2, x+hbl, y-1, 9)
+            rectfill(x,y-2, x+hbl, y-1, 8)
             rectfill(x,y-2, x+hb,  y-1, 3)
         end
         function e:hurt(dmg)
             if not self.flickerer.is_flickering then
-                e:flicker(10)
+                e:flicker(4)
                 if(e.health>0)e.health-=dmg
             end
         end
@@ -520,6 +533,7 @@ function game_state(lvl)
         e.ct=5      
         e.tick=0
         e.hp=3      
+        e.fr=false  
         function e:update()
             if e.hp <= 0 then
                 del(updas, e)
@@ -527,63 +541,80 @@ function game_state(lvl)
                 del(zmbs, e)
                 exp:multiexplode(e.x,e.y)
                 if(shake==0)shake=2
+                zkills+=1
+                bt+=1
+                ct+=1
                 return
             end
-            local s=0.3 
-            local cx=e.x+4
-            local cy=e.y+4
-            local dy=abs(cy-(h.y+4))
-            local dx=abs(cx-(h.x+4))
-            local m=max(dy,dx)  dy=dy/m  dx=dx/m
-            local hd=abs(sqrt((dy*dy)+(dx*dx)))  
-            dy=cy-(g.y+16)
-            dx=cx-(g.x+8)
-            m=max(dy,dx)  dy=dy/m  dx=dx/m
-            local gd=abs(sqrt((dy*dy)+(dx*dx)))  
-            local t=h   
-            local d=hd  
-            local tx=h.x+4 
-            local ty=h.y+4
-            if hd > gd or (h.x< 64 and e.x > 128)then
-                t=g  d=gd
-                tx=g.x+8  ty=g.y+16
-            end
-            if(e.arr)e.tick+=0.1
-            if e.tick > e.ct then
-                e.tick=0  e.arr=false 
-                e:set_anim(1) 
-            end
-            if not self.flickerer.is_flickering then
-                if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
-                    e.arr=true    
-                    e:set_anim(3) 
-                    t:hurt(e.dmg)
-                elseif not e.arr then
-                    local ang=atan2(cx-tx,cy-ty)
-                    local fx=abs(cos(ang)*s)
-                    local fy=abs(sin(ang)*s)
-                    if tx > e.x then
-                        e:setx(e.x+fx) e.flipx=false
-                    elseif tx < e.x then
-                        e:setx(e.x-fx) e.flipx=true
-                    end
-                    if ty > e.y then
-                        e:sety(e.y+fy)
-                    elseif ty < e.y then
-                        e:sety(e.y-fy)
+            if not e.fr then
+                local s=0.3 
+                local cx=e.x+4
+                local cy=e.y+4
+                local dy=abs(cy-(h.y+4))
+                local dx=abs(cx-(h.x+4))
+                local m=max(dy,dx)  dy=dy/m  dx=dx/m
+                local hd=abs(sqrt((dy*dy)+(dx*dx)))  
+                dy=cy-(g.y+16)
+                dx=cx-(g.x+8)
+                m=max(dy,dx)  dy=dy/m  dx=dx/m
+                local gd=abs(sqrt((dy*dy)+(dx*dx)))  
+                local t=h   
+                local d=hd  
+                local tx=h.x+4 
+                local ty=h.y+4
+                if hd > gd or (h.x< 64 and e.x > 128)then
+                    t=g  d=gd
+                    tx=g.x+8  ty=g.y+16
+                end
+                if(e.arr)e.tick+=0.1
+                if e.tick > e.ct then
+                    e.tick=0  e.arr=false 
+                    e:set_anim(1) 
+                end
+                if not self.flickerer.is_flickering then
+                    if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
+                        e.arr=true    
+                        e:set_anim(3) 
+                        t:hurt(e.dmg)
+                    elseif not e.arr then
+                        local ang=atan2(cx-tx,cy-ty)
+                        local fx=abs(cos(ang)*s)
+                        local fy=abs(sin(ang)*s)
+                        if tx > e.x then
+                            e:setx(e.x+fx) e.flipx=false
+                        elseif tx < e.x then
+                            e:setx(e.x-fx) e.flipx=true
+                        end
+                        if ty > e.y then
+                            e:sety(e.y+fy)
+                        elseif ty < e.y then
+                            e:sety(e.y-fy)
+                        end
+                    else
+                        e:set_anim(2) 
                     end
                 else
                     e:set_anim(2) 
                 end
-            else
-                e:set_anim(2) 
+            end
+        end
+        e._draw=e.draw
+        function e:draw()
+            e:_draw()
+            local xx = e.x+2
+            for h=1,e.hp do
+                pset(xx,e.y-2, 8)
+                xx+=2
             end
         end
         function e:hurt(d)
-            if not self.flickerer.is_flickering then
+            if d > 99 or not self.flickerer.is_flickering then
                 e:flicker(15)
                 e.hp-=d
             end
+        end
+        function e:freeze(flag)
+            e.fr=flag
         end
         return e
     end
@@ -593,33 +624,129 @@ function game_state(lvl)
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
+        local bounds_obj=bbox(16,16)
+        e:set_bounds(bounds_obj)
         e.tick=0
         e.f=0       
         e.co=fq+10  
-        local bounds_obj=bbox(16,16)
+        e.fr=false  
+        e.health=250
+        e.mhealth=250
+        function e:update()
+            if e.health <=0 then
+                exp:multiexplode(e.x,e.y)
+                shake=10
+                del(updas,e)
+                del(draws,e)
+                del(spawns,e)
+            end
+            if not e.fr then
+                e.tick+=0.1
+                if e.tick > fq then
+                    if e.f == 0 then
+                        local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
+                    end
+                    e.f=1
+                    if e.tick > e.co then 
+                        e.tick=0
+                        e.f=0
+                    end
+                end
+            end
+        end
+        e._draw=e.draw
+        function e:draw()
+            e:_draw()
+            local hbl=15 
+            local hb=e.health*hbl/e.mhealth 
+            rectfill(e.x,e.y-3, e.x+hbl, e.y-2, 8)
+            rectfill(e.x,e.y-3, e.x+hb,  e.y-2, 3)
+        end
+        function e:hurt(d)
+            e:flicker(3)
+            e.health-=d
+        end
+        function e:freeze(flag)
+            e.fr=flag
+        end
+        return e
+    end
+    function bomb(x,y,h)
+        local anim_obj=anim()
+        anim_obj:add(1,1,1,1,1)
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+        e.kill=false
+        local bounds_obj=bbox(8,8)
         e:set_bounds(bounds_obj)
         function e:update()
-            e.tick+=0.1
-            if e.tick > fq then
-                if e.f == 0 then
-                    local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
+            if e.kill then
+                del(updas, e)
+                del(draws, e)
+                bt=0
+                bf=true
+            end
+            if collides(h,e) then
+                exp:multiexplode(e.x,e.y)
+                shake=10
+                for z in all(zmbs) do
+                    z:hurt(100)
                 end
-                e.f=1
-                if e.tick > e.co then 
-                    e.tick=0
-                    e.f=0
+                e.kill=true 
+            end
+        end
+        return e
+    end
+    function clock(x,y,h)
+        local anim_obj=anim()
+        anim_obj:add(75,1,1,1,1)
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+        local bounds_obj=bbox(8,8)
+        e:set_bounds(bounds_obj)
+        e.f=true    
+        e.t=0
+        e.expiry=200 
+        function e:update()
+            if not e.f then
+                e.t+=1
+                if e.t >= e.expiry then
+                    for z in all(zmbs) do
+                        z:freeze(false)
+                    end
+                    for s in all(spawns) do
+                        s:freeze(false)
+                    end
+                    ct=0
+                    del(updas, e)
+                    del(draws, e)
+                    del(clos, e)
                 end
+            end
+            if collides(h,e) and e.f then
+                e.f = false
+                shake=2
+                for z in all(zmbs) do
+                    z:freeze(true)
+                end
+                for s in all(spawns) do
+                    s:freeze(true)
+                end
+                e:flicker(e.expiry)
             end
         end
         return e
     end
     local g = ghost(120, 48) add(updas, g) add(draws, g)
     local h = hero(120,80,g) add(updas, h) add(draws, h)
-    local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1)
-    local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2)
-    local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3)
-    local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4)
+    local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1) add(spawns, sp1)
+    local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2) add(spawns, sp2)
+    local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3) add(spawns, sp3)
+    local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4) add(spawns, sp4)
     s.update=function()
+        t+=1
         local cx=0
         if(h.x > 64)cx=h.x-64
         if(h.x > 192)cx=128
@@ -628,6 +755,17 @@ function game_state(lvl)
         exp:update()
         for u in all(updas) do
             u:update()
+        end
+        if bt > 10 and bf then
+            bf = false
+            local xx=rnd(40)+100
+            local yy=rnd(40)+70
+            local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
+        end
+        if ct > 5 and count(clos)==0 then
+            local xx=rnd(32)+192
+            local yy=rnd(40)+70
+            local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
         end
         sort(draws)
     end
@@ -777,22 +915,22 @@ function _draw()
     -- pset(mousex,mousey, 12) -- draw your pointer here
 end
 __gfx__
-000000000000000022442224444422224442222442224422000000000000000000000000000000000000d00d0000d00000000000000000000000000000000000
-000000000000000024444444224422224444224444444442000000000000000000000d00d0000000000d00d00dd0d00000d00dd0000d00000000d00d0000d000
-00000000000000004422244222244224422444422442224400000000000000000d0d00d00d00d0d00dddd0d00d0dddd000ddd0d00d0ddd00000d00d00dd0d000
-000000000000000042222242222444442222444224222224000000000000000000ddd0d00d0ddd00000dddddddddd00d000ddddddddddd000dddd0d00d0dddd0
-0000000000000000422222442244224422224444442222240000000000000000000dddddddddd0000d0dddddddddd00000ddddddddddd0d0000dddddddddd00d
-0000000000000000442224444442222442244444444222440000000000000000000dddddddddd000d0ddddddddddddd00dddddddddddddd00d0dddddddddd000
-0000000000000000444444222442222444444442224444440000000000000000d0dd66dddd66dd0d0ddddddddddddd0d0ddddddddd66ddd0d0ddddddddddddd0
-00000000000000004444422222442244442244222224444400992222222299000ddd66dddd66ddd00ddd66dddd66ddd00ddd66dddd66ddd00ddd66dddddddd0d
-000000000000000042224222224422444422442222242224044999222244499000dddddddddddd000dddddddddddddd00dddddddddddddd00ddd66dddd66ddd0
-0000000000000000222224222442222444444442224222220044999444499900d0dddddddddddd0d0dddddddddddddd00dddddddddddddd00dddddddddddddd0
-00000000000000002222244444422224422444444442222200044999999990000dddddddddddddd00dddddddddddddd00dddddddddddddd00dddddddddddddd0
-00000000000000004222444444442244222244444444222400004998899900000dddddddddddddd0000dddddddddd000000dddddddddd0000dddddddddddddd0
-0000000000000000444444444224444422224442444444440000449889990000000dddddddddd00000000dddddd0000000000dddddd00000000dddddddddd000
-000000000000000044442224422442244224444242224444000449999999900000000dddddd000000000000dd00000000000000dd000000000000dddddd00000
-00000000000000002442222244442222444422442222244200444449999999000000000dd0000000000000000000000000000000000000000000000dd0000000
-00000000000000002242222244242222444222242222242200444444444449000000000000000000000000000000000000000000000000000000000000000000
+000000000000778022442224444422224442222442224422000000000000000000000000000000000000d00d0000d00000000000000000000000000000000000
+000000000007000024444444224422224444224444444442000000000000000000000d00d0000000000d00d00dd0d00000d00dd0000d00000000d00d0000d000
+00000000000220004422244222244224422444422442224400000000000000000d0d00d00d00d0d00dddd0d00d0dddd000ddd0d00d0ddd00000d00d00dd0d000
+000000000022d20042222242222444442222444224222224000000000000000000ddd0d00d0ddd00000dddddddddd00d000ddddddddddd000dddd0d00d0dddd0
+0000000002222d20422222442244224422224444442222240000000000000000000dddddddddd0000d0dddddddddd00000ddddddddddd0d0000dddddddddd00d
+0000000002222d20442224444442222442244444444222440000000000000000000dddddddddd000d0ddddddddddddd00dddddddddddddd00d0dddddddddd000
+0000000002222220444444222442222444444442224444440000000000000000d0dd66dddd66dd0d0ddddddddddddd0d0ddddddddd66ddd0d0ddddddddddddd0
+00000000002222004444422222442244442244222224444400992222222299000ddd66dddd66ddd00ddd66dddd66ddd00ddd66dddd66ddd00ddd66dddddddd0d
+777887770000000042224222224422444422442222242224044999222244499000dddddddddddd000dddddddddddddd00dddddddddddddd00ddd66dddd66ddd0
+7778877700000000222224222442222444444442224222220044999444499900d0dddddddddddd0d0dddddddddddddd00dddddddddddddd00dddddddddddddd0
+77788777007887002222244444422224422444444442222200044999999990000dddddddddddddd00dddddddddddddd00dddddddddddddd00dddddddddddddd0
+88888888008888004222444444442244222244444444222400004998899900000dddddddddddddd0000dddddddddd000000dddddddddd0000dddddddddddddd0
+8888888800888800444444444224444422224442444444440000449889990000000dddddddddd00000000dddddd0000000000dddddd00000000dddddddddd000
+777887770078870044442224422442244224444242224444000449999999900000000dddddd000000000000dd00000000000000dd000000000000dddddd00000
+77788777000000002442222244442222444422442222244200444449999999000000000dd0000000000000000000000000000000000000000000000dd0000000
+77788777000000002242222244242222444222242222242200444444444449000000000000000000000000000000000000000000000000000000000000000000
 1d11111111111d111111111111111d11111111110000000000000000003333000003330000333300003330000033330000000000000000000000000000000000
 dd11111dd1111111111111111111111111111111000000000000000000338300003338000033830000333800003383000000000bb00000000000000000000000
 d1111111dd111111d1111111111111111111111100000000000000000033330000383300003333000033330000333300000000bb7b0000000000000bb0000000
@@ -801,22 +939,22 @@ d1111111dd111111d111111111111111111111110000000000000000003333000038330000333300
 11111111111111111111111111111111111111110000556668550000000440000004430000044500005440000004450000000000000000000000000bb0000000
 1111111dd11111111111111111111111111111110005256686565000000440000004440000044000003440000004400000000444444000000000044444400000
 111111ddd11111111111111111111111111111110005625555685000000530000050030000305000000050000030500000004499994400000000449999440000
-111111dd111111111111111111111111000050050005265665865000004444000044440000444400004444000000000000049499994940000004949999494000
-111111d11111111111111111111111110005555000526256656865000044fd00004fdf0000fdfd00004fdf000000000000049494494940000004949449494000
-1111111111111111111111111111111100006750005625666656650000ffff0000ffff0000ffff0000ffff000000000000499949949994000049994994999400
-11111111111111111111111111111111000676550562656666566650000bfff0000bb0000ffbb660000fb0000000000000499499994994000049949999499400
-11111111111111111111111111111111006760500526256666566650066bb000000bff000f0bb00000fbb6000000000000499499994994000049949999499400
-1111111dd11111111111111dd1111111667600000052656666566500000cccc0000bb000000c5550000bb0000000000000499499994994000049949999499400
-11111111d11111d111111111d1111111676000000005526666655000005550c0000cc00000cc0050000c50000000000000049499994940000004949999494000
-1d11111111111dd11d111111111111117660000000005555555500000000000000500c000000000000c005000000000000004444444400000000444444440000
-00444400004444000044440000000000000000000000000000444400000333000033330000333300003333000000000000000000000000000000000000000000
-004fdf0000fdfd00004fdf0000444400004444000044440000fdfd00003338000038380000838300003838000000000000000000000000000000000000000000
-00ffff0000ffff0000ffff0000fdfd0000dfdf0000fdfd0000ffff00003833000033330000333300003333000000000000000000000000000000000000000000
-000bb00000bbbb00000bb00000ffff0000ffff0000ffff0000bbbb00003330000004430000344000000443000000000000000000000000000000000000000000
-00fbbf000f0bb0f000fbbf0000bbbb0000bbbb0000bbbb000f0bb0f0000443000034400000044300003440000000000000000000000000000000000000000000
-0f0bb0f0000bb0000f0bb0f000fbbf0000fbbf0000fbbf00000bb000003440000004400000044000000440000000000000000000000000000000000000000000
-000cc000000cc000000cc000000bb000000bb000000bb000000cc000000440000004400000044000000440000000000000000000000000000000000000000000
-000cc000000cc000000cc00000c0c000000cc000000cc000000cc000000530000005300000053000000530000000000000000000000000000000000000000000
+111111dd111111111111111111111111000020020005265665865000004444000044440000444400004444000000000000049499994940000004949999494000
+111111d11111111111111111111111110002222000526256656865000044fd00004fdf0000fdfd00004fdf000000000000049494494940000004949449494000
+1111111111111111111111111111111100005620005625666656650000ffff0000ffff0000ffff0000ffff000000000000499949949994000049994994999400
+11111111111111111111111111111111000565220562656666566650000bfff0000bb0000ffbb660000fb0000000000000499499994994000049949999499400
+11111111111111111111111111111111005650200526256666566650066bb000000bff000f0bb00000fbb6000000000000499499994994000049949999499400
+1111111dd11111111111111dd1111111556500000052656666566500000cccc0000bb000000c5550000bb0000000000000499499994994000049949999499400
+11111111d11111d111111111d1111111565000000005526666655000005550c0000cc00000cc0050000c50000000000000049499994940000004949999494000
+1d11111111111dd11d111111111111116550000000005555555500000000000000500c000000000000c005000000000000004444444400000000444444440000
+00444400004444000044440000000000000000000000000000444400000333000033330000333300003333000055550000000000000000000000000000000000
+004fdf0000fdfd00004fdf0000444400004444000044440000fdfd00003338000038380000838300003838000577775000000000000000000000000000000000
+00ffff0000ffff0000ffff0000fdfd0000dfdf0000fdfd0000ffff00003833000033330000333300003333005775777500000000000000000000000000000000
+000bb00000bbbb00000bb00000ffff0000ffff0000ffff0000bbbb00003330000004430000344000000443005775777500000000000000000000000000000000
+00fbbf000f0bb0f000fbbf0000bbbb0000bbbb0000bbbb000f0bb0f0000443000034400000044300003440005775557500000000000000000000000000000000
+0f0bb0f0000bb0000f0bb0f000fbbf0000fbbf0000fbbf00000bb000003440000004400000044000000440005777777500000000000000000000000000000000
+000cc000000cc000000cc000000bb000000bb000000bb000000cc000000440000004400000044000000440000577775000000000000000000000000000000000
+000cc000000cc000000cc00000c0c000000cc000000cc000000cc000000530000005300000053000000530000055550000000000000000000000000000000000
 00383800000033000038330000003300000000000000000000000600000000000004444000000000000000000000000000000000000000000000000000000000
 303333000003833308333e000003833306676000000600600060000000000000000fdfd000000000000000000000000000000000000000000000000000000000
 0303ee00003333800333eee00033338060667600600060060000600600060000000ffff000000000000000000000000000000000000000000000000000000000
@@ -829,7 +967,9 @@ d1111111dd111111d111111111111111111111110000000000000000003333000038330000333300
 00000000000000000000000000000000000000000000000000000000567766660000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000006676600000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000667660000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000066600000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000766670000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000077770000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000007700000000000000000000000000000000000000000000000000000000000000000
 __map__
 0203040502030405020304050203040502030405020304050203040502030405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 1224242424242424242424242424242424242424242424242424242424242405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

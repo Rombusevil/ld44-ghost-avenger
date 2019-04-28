@@ -2,9 +2,16 @@ function game_state(lvl)
     local s={}
     local updas={}
     local draws={}
+    local spawns={}
     local zmbs={}
+    local clos={}
     local shake=0
     local exp=circle_explo()
+    local zkills=0  -- zombies killed
+    local bt=0      -- bomb trigger
+    local bf=true   -- bomb fuse
+    local t=0       -- ticker
+    local ct=0      -- clock trigger
 
     function sword(x,y,h)
         local anim_obj=anim()
@@ -25,6 +32,7 @@ function game_state(lvl)
         local bounds_obj=bbox(8,16, 0,0,0,4)
         e:set_bounds(bounds_obj)
         --e.debugbounds=true
+        e.dmg=1
         
         function e:update()
             local xo=0
@@ -39,7 +47,14 @@ function game_state(lvl)
                 -- kill zombies
                 for z in all(zmbs) do
                     if collides(z,e) then
-                        z:hurt(1)
+                        z:hurt(e.dmg)
+                    end
+                end
+
+                -- kill spawners
+                for s in all(spawns) do
+                    if collides(s,e) then
+                        s:hurt(e.dmg)
                     end
                 end
             end
@@ -47,8 +62,6 @@ function game_state(lvl)
             e.flipx=h.flipx
             e:setx(h.x+xo)
             e:sety(h.y+yo)
-
-
         end
 
         function e:atk()
@@ -146,7 +159,7 @@ function game_state(lvl)
             -- Draw life bar
             local hbl=7 -- health bar length (in px)
             local hb=e.health*hbl/e.mhealth --health bar
-            rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 9)
+            rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 8)
             rectfill(e.x,e.y-4, e.x+hb,  e.y-3, 3)
             -- 
         end
@@ -198,7 +211,7 @@ function game_state(lvl)
             e:_draw()    -- ghost
             local hbl=15 -- health bar length (in px)
             local hb=e.health*hbl/e.mhealth --health bar
-            rectfill(x,y-2, x+hbl, y-1, 9)
+            rectfill(x,y-2, x+hbl, y-1, 8)
             rectfill(x,y-2, x+hb,  y-1, 3)
         end
 
@@ -232,6 +245,7 @@ function game_state(lvl)
         e.ct=5      -- cool off timer
         e.tick=0
         e.hp=3      -- hit points
+        e.fr=false  -- freezed
         
         function e:update()
             if e.hp <= 0 then
@@ -242,78 +256,97 @@ function game_state(lvl)
                 -- TOOD MAKE DEATH SOUND
                 exp:multiexplode(e.x,e.y)
                 if(shake==0)shake=2
+                zkills+=1
+                bt+=1
+                ct+=1
                 return
             end
 
-            local s=0.3 -- speed
-      
-            -- zombie center
-            local cx=e.x+4
-            local cy=e.y+4
-            -- 
-            local dy=abs(cy-(h.y+4))
-            local dx=abs(cx-(h.x+4))
-            local m=max(dy,dx)  dy=dy/m  dx=dx/m
-            local hd=abs(sqrt((dy*dy)+(dx*dx)))  -- hero distance
+            if not e.fr then
+                local s=0.3 -- speed
+        
+                -- zombie center
+                local cx=e.x+4
+                local cy=e.y+4
+                -- 
+                local dy=abs(cy-(h.y+4))
+                local dx=abs(cx-(h.x+4))
+                local m=max(dy,dx)  dy=dy/m  dx=dx/m
+                local hd=abs(sqrt((dy*dy)+(dx*dx)))  -- hero distance
 
-            dy=cy-(g.y+16)
-            dx=cx-(g.x+8)
-            m=max(dy,dx)  dy=dy/m  dx=dx/m
-            local gd=abs(sqrt((dy*dy)+(dx*dx)))  -- ghost distance
+                dy=cy-(g.y+16)
+                dx=cx-(g.x+8)
+                m=max(dy,dx)  dy=dy/m  dx=dx/m
+                local gd=abs(sqrt((dy*dy)+(dx*dx)))  -- ghost distance
 
-            -- target: hero or ghost?
-            local t=h   -- target obj
-            local d=hd  -- distance to target
-            local tx=h.x+4 
-            local ty=h.y+4
-            if hd > gd or (h.x< 64 and e.x > 128)then
-                t=g  d=gd
-                tx=g.x+8  ty=g.y+16
-            end
+                -- target: hero or ghost?
+                local t=h   -- target obj
+                local d=hd  -- distance to target
+                local tx=h.x+4 
+                local ty=h.y+4
+                if hd > gd or (h.x< 64 and e.x > 128)then
+                    t=g  d=gd
+                    tx=g.x+8  ty=g.y+16
+                end
 
-            -- movement towards target
-            if(e.arr)e.tick+=0.1
-            if e.tick > e.ct then
-                e.tick=0  e.arr=false 
-                e:set_anim(1) -- walk
-            end
+                -- movement towards target
+                if(e.arr)e.tick+=0.1
+                if e.tick > e.ct then
+                    e.tick=0  e.arr=false 
+                    e:set_anim(1) -- walk
+                end
 
-            if not self.flickerer.is_flickering then
-                if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
-                    e.arr=true    -- arrived
-                    e:set_anim(3) -- attack
-                    t:hurt(e.dmg)
-                elseif not e.arr then
-                    -- move to target
-                    local ang=atan2(cx-tx,cy-ty)
-                    local fx=abs(cos(ang)*s)
-                    local fy=abs(sin(ang)*s)
+                if not self.flickerer.is_flickering then
+                    if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
+                        e.arr=true    -- arrived
+                        e:set_anim(3) -- attack
+                        t:hurt(e.dmg)
+                    elseif not e.arr then
+                        -- move to target
+                        local ang=atan2(cx-tx,cy-ty)
+                        local fx=abs(cos(ang)*s)
+                        local fy=abs(sin(ang)*s)
 
-                    if tx > e.x then
-                        e:setx(e.x+fx) e.flipx=false
-                    elseif tx < e.x then
-                        e:setx(e.x-fx) e.flipx=true
-                    end
+                        if tx > e.x then
+                            e:setx(e.x+fx) e.flipx=false
+                        elseif tx < e.x then
+                            e:setx(e.x-fx) e.flipx=true
+                        end
 
-                    if ty > e.y then
-                        e:sety(e.y+fy)
-                    elseif ty < e.y then
-                        e:sety(e.y-fy)
+                        if ty > e.y then
+                            e:sety(e.y+fy)
+                        elseif ty < e.y then
+                            e:sety(e.y-fy)
+                        end
+                    else
+                        -- in cool off mode, but not close to target
+                        e:set_anim(2) -- idle
                     end
                 else
-                    -- in cool off mode, but not close to target
-                    e:set_anim(2) -- idle
+                    e:set_anim(2) -- idle/confused
                 end
-            else
-                e:set_anim(2) -- idle/confused
+            end
+        end
+
+        e._draw=e.draw
+        function e:draw()
+            e:_draw()
+            local xx = e.x+2
+            for h=1,e.hp do
+                pset(xx,e.y-2, 8)
+                xx+=2
             end
         end
         
         function e:hurt(d)
-            if not self.flickerer.is_flickering then
+            if d > 99 or not self.flickerer.is_flickering then
                 e:flicker(15)
                 e.hp-=d
             end
+        end
+
+        function e:freeze(flag)
+            e.fr=flag
         end
 
         return e
@@ -328,40 +361,158 @@ function game_state(lvl)
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
-
-        e.tick=0
-        e.f=0       -- fuse
-        e.co=fq+10  -- cool off time
             
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
         -- e.debugbounds=true
+
+        e.tick=0
+        e.f=0       -- fuse
+        e.co=fq+10  -- cool off time
+        e.fr=false  -- freezed
+        e.health=250
+        e.mhealth=250
         
         function e:update()
-            e.tick+=0.1
-            if e.tick > fq then
-                if e.f == 0 then
-                    local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
-                end
+            if e.health <=0 then
+                exp:multiexplode(e.x,e.y)
+                shake=10
+                del(updas,e)
+                del(draws,e)
+                del(spawns,e)
+            end
 
-                e.f=1
-                if e.tick > e.co then 
-                    e.tick=0
-                    e.f=0
+            if not e.fr then
+                e.tick+=0.1
+                if e.tick > fq then
+                    if e.f == 0 then
+                        local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
+                    end
+
+                    e.f=1
+                    if e.tick > e.co then 
+                        e.tick=0
+                        e.f=0
+                    end
                 end
             end
         end
+
+        e._draw=e.draw
+        function e:draw()
+            e:_draw()
+
+            -- Draw life bar
+            local hbl=15 -- health bar length (in px)
+            local hb=e.health*hbl/e.mhealth --health bar
+            rectfill(e.x,e.y-3, e.x+hbl, e.y-2, 8)
+            rectfill(e.x,e.y-3, e.x+hb,  e.y-2, 3)
+            -- 
+        end
+
+        function e:hurt(d)
+            e:flicker(3)
+            e.health-=d
+        end
+
+        function e:freeze(flag)
+            e.fr=flag
+        end
+        return e
+    end
+
+    function bomb(x,y,h)
+        local anim_obj=anim()
+        anim_obj:add(1,1,1,1,1)
+    
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+        e.kill=false
+    
+        local bounds_obj=bbox(8,8)
+        e:set_bounds(bounds_obj)
+        -- e.debugbounds=true
+        
+        function e:update()
+            if e.kill then
+                del(updas, e)
+                del(draws, e)
+                bt=0
+                bf=true
+            end
+
+            -- if collides with hero explode
+            if collides(h,e) then
+                exp:multiexplode(e.x,e.y)
+                shake=10
+                for z in all(zmbs) do
+                    z:hurt(100)
+                end
+                e.kill=true -- defer killing to next tick
+            end
+        end
+
+        return e
+    end
+
+    function clock(x,y,h)
+        local anim_obj=anim()
+        anim_obj:add(75,1,1,1,1)
+    
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+    
+        local bounds_obj=bbox(8,8)
+        e:set_bounds(bounds_obj)
+        e.f=true    -- fuse
+        e.t=0
+        e.expiry=200 -- expiry time/ freeze time in ticks
+        
+        function e:update()
+            if not e.f then
+                e.t+=1
+                if e.t >= e.expiry then
+                    for z in all(zmbs) do
+                        z:freeze(false)
+                    end
+                    for s in all(spawns) do
+                        s:freeze(false)
+                    end
+
+                    ct=0
+                    del(updas, e)
+                    del(draws, e)
+                    del(clos, e)
+                end
+            end
+
+            if collides(h,e) and e.f then
+                e.f = false
+                shake=2
+                for z in all(zmbs) do
+                    z:freeze(true)
+                end
+                for s in all(spawns) do
+                    s:freeze(true)
+                end
+                e:flicker(e.expiry)
+            end
+        end
+    
         return e
     end
 
     local g = ghost(120, 48) add(updas, g) add(draws, g)
     local h = hero(120,80,g) add(updas, h) add(draws, h)
-    local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1)
-    local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2)
-    local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3)
-    local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4)
+    local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1) add(spawns, sp1)
+    local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2) add(spawns, sp2)
+    local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3) add(spawns, sp3)
+    local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4) add(spawns, sp4)
 
     s.update=function()
+        t+=1
         local cx=0
         if(h.x > 64)cx=h.x-64
         if(h.x > 192)cx=128
@@ -371,6 +522,21 @@ function game_state(lvl)
 
         for u in all(updas) do
             u:update()
+        end
+
+        -- Spawn Bomb
+        if bt > 10 and bf then
+            bf = false
+            local xx=rnd(40)+100
+            local yy=rnd(40)+70
+            local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
+        end
+
+        -- Spawn Freeze Clock
+        if ct > 5 and count(clos)==0 then
+            local xx=rnd(32)+192
+            local yy=rnd(40)+70
+            local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
         end
 
         sort(draws)
