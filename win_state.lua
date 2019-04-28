@@ -10,7 +10,8 @@ function win_state(points,kills)
 
     music(-1)
     sfx(-1)
-    camera(0,0)
+    music(0)
+    
     
     local ty=15
     add(texts, tutils({text="congratulations",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
@@ -27,6 +28,7 @@ function win_state(points,kills)
     add(texts, msg)
 
     s.update=function()
+        camera(0,0)
         timeout -= 1/60
         if(btnp(5) and timeout <= 0) curstate=menu_state() -- "X"
     end

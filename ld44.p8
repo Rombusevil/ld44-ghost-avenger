@@ -293,7 +293,7 @@ end
 function menu_state()
     local state={}
     local texts={}
-    camera(0,0)
+	music(0)
 	add(texts, tutils({text="ghost avenger",centerx=true,y=8,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
 	add(texts, tutils({text="rombosaur studios",centerx=true,y=99,fg=9,sh=2,shadowed=true}))
 	add(texts, tutils({text="ludum dare 44",centerx=true,y=16,fg=4,sh=2,shadowed=true}))
@@ -315,6 +315,7 @@ function menu_state()
 	local frbkg=1
 	local frfg=6
 	state.update=function()
+		camera(0,0)
         if(btnp(5)) curstate=game_state(1) 
 	end
 	cls()
@@ -359,6 +360,8 @@ function game_state(lvl)
     local t=0       
     local ct=0      
     local p=0       
+    music(-1)
+    music(6)
     function sword(x,y,h)
         local anim_obj=anim()
         anim_obj:add(52,1,1,1,1) 
@@ -420,6 +423,7 @@ function game_state(lvl)
         e.atk=false  
         e.swrd=sword(x,y,e)
         function e:update()
+            if(e.health > e.mhealth) e.health=e.mhealth
             if e.health <= 0 then
                 curstate=gameover_state(p,zkills,false)
             end
@@ -448,7 +452,7 @@ function game_state(lvl)
                     for z in all(zmbs) do
                         z:hurt(100)
                     end
-                    g:hurt(g.mhealth/4)
+                    g:usebomb()
                     sfx(6)
                 end
             end
@@ -501,13 +505,13 @@ function game_state(lvl)
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
         function e:update()
+            if(e.health > e.mhealth) e.health=e.mhealth
             e.tick+=0.1
             if e.health <= 0 then
                 curstate=gameover_state(p,zkills,true)
             end
             if e.health<=e.mhealth and e.tick > 50 then
                 e.tick=0
-                e.health+=1 
             end
         end
         e._draw=e.draw
@@ -526,6 +530,9 @@ function game_state(lvl)
                 sfx(2)
             end
         end
+        function e:usebomb()
+            e.health-=e.mhealth/4
+        end
         return e
     end
     function zombie(x,y,h,g)
@@ -540,7 +547,7 @@ function game_state(lvl)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
-        e.dmg=0.4   
+        e.dmg=1   
         e.arr=false 
         e.ct=5      
         e.tick=0
@@ -643,11 +650,18 @@ function game_state(lvl)
         e:set_bounds(bounds_obj)
         e.tick=0
         e.f=0       
-        e.co=fq+10  
+        e.co=fq+3  
         e.fr=false  
         e.health=250
         e.mhealth=250
+        e.fq=fq
         function e:update()
+            if t % 1000 == 0 then
+                printh("fq "..e.fq)
+                e.fq-=3
+                if(e.fq < 1)e.fq=1
+                e.co=e.fq+10
+            end
             if e.health <=0 then
                 exp:multiexplode(e.x,e.y)
                 shake=10
@@ -657,10 +671,11 @@ function game_state(lvl)
                 p+=100
                 sfx(6)
                 sfx(10)
+                local h=health(e.x-4, e.y-4, h,g) add(updas, h) add(draws, h)
             end
             if not e.fr then
                 e.tick+=0.1
-                if e.tick > fq then
+                if e.tick > e.fq then
                     if e.f == 0 then
                         local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
                         sfx(0)
@@ -764,6 +779,25 @@ function game_state(lvl)
         end
         return e
     end
+    function health(x,y,h,g)
+        local anim_obj=anim()
+        anim_obj:add(16,1,1,1,1)
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+        local bounds_obj=bbox(8,8)
+        e:set_bounds(bounds_obj)
+        function e:update()
+            if collides(h,e) then
+                del(updas, e)
+                del(draws, e)
+                g.health+=g.mhealth/4
+                h.health+=h.mhealth/4
+                sfx(7)
+            end
+        end
+        return e
+    end
     local g = ghost(120, 48) add(updas, g) add(draws, g)
     local h = hero(120,80,g) add(updas, h) add(draws, h)
     local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1) add(spawns, sp1)
@@ -784,16 +818,14 @@ function game_state(lvl)
         for u in all(updas) do
             u:update()
         end
+        local xx=rnd(40)+100
+        local yy=rnd(40)+70
         if bt > 10 and bf then
             bf = false
-            local xx=rnd(40)+100
-            local yy=rnd(40)+70
             local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
         end
         if ct > 20 and #clos==0 then
             sfx(9)
-            local xx=rnd(32)+192
-            local yy=rnd(40)+70
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
         end
         sort(draws)
@@ -839,9 +871,9 @@ function gameover_state(points, kills, ghostdied)
     local timeout=2 
     local frbkg=8
     local frfg=6
-    camera(0,0)
     music(-1)
     sfx(-1)
+    music(0)
     local ty=15
     local msg="you died"
     if(ghostdied)msg="the ghost died"
@@ -856,6 +888,7 @@ function gameover_state(points, kills, ghostdied)
     local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
     add(texts, msg)
     s.update=function()
+        camera(0,0)
         timeout -= 1/60
         if(btnp(5) and timeout <= 0) curstate=menu_state() 
     end
@@ -892,7 +925,7 @@ function win_state(points,kills)
     local frfg=6
     music(-1)
     sfx(-1)
-    camera(0,0)
+    music(0)
     local ty=15
     add(texts, tutils({text="congratulations",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="you've beaten the game" ,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
@@ -906,6 +939,7 @@ function win_state(points,kills)
     local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
     add(texts, msg)
     s.update=function()
+        camera(0,0)
         timeout -= 1/60
         if(btnp(5) and timeout <= 0) curstate=menu_state() 
     end
@@ -1043,11 +1077,11 @@ __sfx__
 000600002e4502e4002e430000002e410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00050000350503a0503305000000270502b050240500000000000130501605011050000001d050220501f05000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000700001105011050110500c0500c0500c0500000007050070500705000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010f00000c0530c300000000c300170530c30000000000000c053000000c05300000170531030010300000000c053000000000000000170531130011300113000c0530c0530c0530c053170530e3000c0530e300
+010f00000005000050000000000000000000000705007050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010f0000000500005000000000000000000000070500705000000000000c0500c0500905009050000000000009050090500000000000090500905000000000000205002050020500205002050000000205000000
+010f00000000000000000500000000000000000005000000000000000000050000000000000000000500000000000000500000000050103100000000310000000b21000000093100000000000000000000000000
+010f000000000000000000000000000000000000000000000000000000000000000000000000000000000000103101031000000103100e3100000010310000000e210000000c3100000000000073100000007310
 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1097,13 +1131,13 @@ __sfx__
 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __music__
-00 00000000
-00 00000000
-00 00000000
-00 00000000
-00 00000000
-00 00000000
-00 00000000
+01 40400c0b
+00 40400d0b
+00 40400c0b
+00 40400d0b
+00 400e0c0b
+02 400f0d0b
+03 4040400b
 00 00000000
 00 00000000
 00 00000000

@@ -7,9 +7,9 @@ function gameover_state(points, kills, ghostdied)
     -- graphical frame 
     local frbkg=8
     local frfg=6
-    camera(0,0)
     music(-1)
     sfx(-1)
+    music(0)
     
     local ty=15
     local msg="you died"
@@ -27,6 +27,7 @@ function gameover_state(points, kills, ghostdied)
     add(texts, msg)
 
     s.update=function()
+        camera(0,0)
         timeout -= 1/60
         if(btnp(5) and timeout <= 0) curstate=menu_state() -- "X"
     end

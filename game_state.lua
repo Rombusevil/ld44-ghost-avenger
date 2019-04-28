@@ -13,6 +13,8 @@ function game_state(lvl)
     local t=0       -- ticker
     local ct=0      -- clock trigger
     local p=0       -- points
+    music(-1)
+    music(6)
 
     function sword(x,y,h)
         local anim_obj=anim()
@@ -92,6 +94,7 @@ function game_state(lvl)
         e.swrd=sword(x,y,e)
         
         function e:update()
+            if(e.health > e.mhealth) e.health=e.mhealth
             if e.health <= 0 then
                 curstate=gameover_state(p,zkills,false)
             end
@@ -129,7 +132,7 @@ function game_state(lvl)
                         z:hurt(100)
                     end
                                         
-                    g:hurt(g.mhealth/4)
+                    g:usebomb()
                     sfx(6)
                 end
             end
@@ -197,6 +200,7 @@ function game_state(lvl)
         -- e.debugbounds=true
         
         function e:update()
+            if(e.health > e.mhealth) e.health=e.mhealth
             e.tick+=0.1
             if e.health <= 0 then
                 curstate=gameover_state(p,zkills,true)
@@ -204,7 +208,7 @@ function game_state(lvl)
 
             if e.health<=e.mhealth and e.tick > 50 then
                 e.tick=0
-                e.health+=1 -- health regen
+                -- e.health+=1 -- health regen
             end
         end
 
@@ -226,6 +230,10 @@ function game_state(lvl)
             end
         end
 
+        function e:usebomb()
+            e.health-=e.mhealth/4
+        end
+
         return e
     end
 
@@ -244,7 +252,7 @@ function game_state(lvl)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
-        e.dmg=0.4   -- damage
+        e.dmg=1   -- damage
         e.arr=false -- arrived to destination
         e.ct=5      -- cool off timer
         e.tick=0
@@ -256,7 +264,6 @@ function game_state(lvl)
                 del(updas, e)
                 del(draws, e)
                 del(zmbs, e)
-                -- TOOD MAKE DEATH SOUND
                 exp:multiexplode(e.x,e.y)
                 if(shake==0)shake=2
                 zkills+=1
@@ -374,12 +381,20 @@ function game_state(lvl)
 
         e.tick=0
         e.f=0       -- fuse
-        e.co=fq+10  -- cool off time
+        e.co=fq+3  -- cool off time
         e.fr=false  -- freezed
         e.health=250
         e.mhealth=250
+        e.fq=fq
         
         function e:update()
+            if t % 1000 == 0 then
+                printh("fq "..e.fq)
+                e.fq-=3
+                if(e.fq < 1)e.fq=1
+                e.co=e.fq+10
+            end
+
             if e.health <=0 then
                 exp:multiexplode(e.x,e.y)
                 shake=10
@@ -389,11 +404,12 @@ function game_state(lvl)
                 p+=100
                 sfx(6)
                 sfx(10)
+                local h=health(e.x-4, e.y-4, h,g) add(updas, h) add(draws, h)
             end
 
             if not e.fr then
                 e.tick+=0.1
-                if e.tick > fq then
+                if e.tick > e.fq then
                     if e.f == 0 then
                         local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
                         sfx(0)
@@ -520,6 +536,31 @@ function game_state(lvl)
         return e
     end
 
+    function health(x,y,h,g)
+        local anim_obj=anim()
+        anim_obj:add(16,1,1,1,1)
+    
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+    
+        local bounds_obj=bbox(8,8)
+        e:set_bounds(bounds_obj)
+        -- e.debugbounds=true
+        
+        function e:update()
+            if collides(h,e) then
+                del(updas, e)
+                del(draws, e)
+                g.health+=g.mhealth/4
+                h.health+=h.mhealth/4
+                sfx(7)
+            end
+        end
+            
+        return e
+    end
+
     local g = ghost(120, 48) add(updas, g) add(draws, g)
     local h = hero(120,80,g) add(updas, h) add(draws, h)
     local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1) add(spawns, sp1)
@@ -544,19 +585,18 @@ function game_state(lvl)
             u:update()
         end
 
+        local xx=rnd(40)+100
+        local yy=rnd(40)+70
+
         -- Spawn Bomb
         if bt > 10 and bf then
             bf = false
-            local xx=rnd(40)+100
-            local yy=rnd(40)+70
             local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
         end
 
         -- Spawn Freeze Clock
         if ct > 20 and #clos==0 then
             sfx(9)
-            local xx=rnd(32)+192
-            local yy=rnd(40)+70
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
         end
 
