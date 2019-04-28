@@ -238,7 +238,37 @@ function point_collides(x,y, ent)
     end
     return false
 end
---  --<*sff/explosions.lua
+function circle_explo()
+	local ex={}
+	ex.circles={}
+	function ex:explode(x,y)
+		add(self.circles,{x=x,y=y,t=0,s=2})
+	end
+	function ex:multiexplode(x,y)
+		local time=0
+		add(self.circles,{x=x,y=y,t=time,s=rnd(2)+1 }) time-=2
+		add(self.circles,{x=x+7,y=y-3,t=time,s=rnd(2)+1}) time-=2
+		add(self.circles,{x=x-7,y=y+3,t=time,s=rnd(2)+1}) time-=2
+		add(self.circles,{x=x,y=y,t=time,s=rnd(2)+1}) time-=2
+		add(self.circles,{x=x+7,y=y+3,t=time,s=rnd(2)+1}) time-=2
+		add(self.circles,{x=x-7,y=y-3,t=time,s=rnd(2)+1}) time-=2
+		add(self.circles,{x=x,y=y,t=time,s=rnd(2)+1}) time-=2
+	end
+	function ex:update()
+		for ex in all(self.circles) do
+			ex.t+=ex.s
+			if ex.t >= 20 then
+				del(self.circles, ex)
+			end
+		end
+	end
+	function ex:draw()
+		for ex in all(self.circles) do
+			circ(ex.x,ex.y,ex.t/2,8+ex.t%3)
+		end
+	end
+	return ex
+end
 --  --<*sff/buttons.lua
 
 local tick_dance=0
@@ -314,6 +344,8 @@ function game_state(lvl)
     local updas={}
     local draws={}
     local zmbs={}
+    local shake=0
+    local exp=circle_explo()
     function sword(x,y,h)
         local anim_obj=anim()
         anim_obj:add(52,1,1,1,1) 
@@ -329,7 +361,6 @@ function game_state(lvl)
         anim_obj:add(84,4,0.75,1,2,true,ad) 
         local bounds_obj=bbox(8,16, 0,0,0,4)
         e:set_bounds(bounds_obj)
-        e.debugbounds=true
         function e:update()
             local xo=0
             local yo=0
@@ -354,7 +385,7 @@ function game_state(lvl)
         end
         return e
     end
-    function hero(x,y)
+    function hero(x,y,g)
         local anim_obj=anim()
         anim_obj:add(64,7,0.05,1,1) 
         anim_obj:add(55,4,0.3,1,1)  
@@ -392,6 +423,13 @@ function game_state(lvl)
             if(e.y<8)e:sety(8)
             if(e.y>112)e:sety(112)
             if btnp(4) then 
+                if g.health > g.mhealth/4 then
+                    shake=15
+                    for z in all(zmbs) do
+                        z:hurt(100)
+                    end
+                    g:hurt(g.mhealth/4)
+                end
             end
             if btnp(5) then 
                 e.atk=true
@@ -436,10 +474,16 @@ function game_state(lvl)
         e:set_anim(1)
         e.mhealth=100 
         e.health=100
+        e.tick=0
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
         function e:update()
+            e.tick+=0.1
             if e.health <= 0 then
+            end
+            if e.health<=e.mhealth and e.tick > 50 then
+                e.tick=0
+                e.health+=1 
             end
         end
         e._draw=e.draw
@@ -481,6 +525,8 @@ function game_state(lvl)
                 del(updas, e)
                 del(draws, e)
                 del(zmbs, e)
+                exp:multiexplode(e.x,e.y)
+                if(shake==0)shake=2
                 return
             end
             local s=0.3 
@@ -567,8 +613,8 @@ function game_state(lvl)
         end
         return e
     end
-    local h = hero(10,10)   add(updas, h) add(draws, h)
-    local g = ghost(120,48) add(updas, g) add(draws, g)
+    local g = ghost(120, 48) add(updas, g) add(draws, g)
+    local h = hero(120,80,g) add(updas, h) add(draws, h)
     local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1)
     local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2)
     local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3)
@@ -578,14 +624,17 @@ function game_state(lvl)
         if(h.x > 64)cx=h.x-64
         if(h.x > 192)cx=128
         camera(cx,0)
-        sort(draws)
+        cam_shake(cx)
+        exp:update()
         for u in all(updas) do
             u:update()
         end
+        sort(draws)
     end
     s.draw=function()
         cls()
         map(0,0,0,0)
+        exp:draw()
         for d in all(draws) do
             d:draw()
         end
@@ -597,6 +646,16 @@ function game_state(lvl)
                 a[j],a[j-1] = a[j-1],a[j]
                 j = j - 1
             end
+        end
+    end
+    function cam_shake(cx)
+        if shake>0 then
+            if shake>0.1 then
+                shake*=0.9
+            else
+                shake=0
+            end
+            camera(cx+(rnd()*shake),rnd()*shake)
         end
     end
     return s

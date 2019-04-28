@@ -8,7 +8,7 @@ __lua__
 --<*sff/timer.lua
 --<*sff/tutils.lua
 --<*sff/collision.lua
---  --<*sff/explosions.lua
+--<*sff/explosions.lua
 --  --<*sff/buttons.lua
 
 --<*visual.lua

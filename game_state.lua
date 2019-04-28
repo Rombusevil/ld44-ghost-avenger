@@ -3,6 +3,8 @@ function game_state(lvl)
     local updas={}
     local draws={}
     local zmbs={}
+    local shake=0
+    local exp=circle_explo()
 
     function sword(x,y,h)
         local anim_obj=anim()
@@ -22,7 +24,7 @@ function game_state(lvl)
     
         local bounds_obj=bbox(8,16, 0,0,0,4)
         e:set_bounds(bounds_obj)
-        e.debugbounds=true
+        --e.debugbounds=true
         
         function e:update()
             local xo=0
@@ -57,7 +59,7 @@ function game_state(lvl)
         return e
     end
     
-    function hero(x,y)
+    function hero(x,y,g)
         local anim_obj=anim()
         anim_obj:add(64,7,0.05,1,1) -- idle
         anim_obj:add(55,4,0.3,1,1)  -- run
@@ -77,7 +79,7 @@ function game_state(lvl)
         
         function e:update()
             if e.health <= 0 then
-                -- GAME OVER SCREEN
+                -- TODO GAME OVER SCREEN
             end
 
             -- movement
@@ -106,7 +108,16 @@ function game_state(lvl)
             -- -
             
             if btnp(4) then -- "O"
-            
+                -- Explode everyone with ghost's health
+                if g.health > g.mhealth/4 then
+                    shake=15
+                    for z in all(zmbs) do
+                        z:hurt(100)
+                    end
+                                        
+                    g:hurt(g.mhealth/4)
+                    -- TODO: explosion sound
+                end
             end
             
             if btnp(5) then -- "X"
@@ -163,14 +174,21 @@ function game_state(lvl)
         e:set_anim(1)
         e.mhealth=100 -- max health
         e.health=100
+        e.tick=0
     
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
         -- e.debugbounds=true
         
         function e:update()
+            e.tick+=0.1
             if e.health <= 0 then
                 -- TODO: GAME OVER
+            end
+
+            if e.health<=e.mhealth and e.tick > 50 then
+                e.tick=0
+                e.health+=1 -- health regen
             end
         end
 
@@ -186,7 +204,7 @@ function game_state(lvl)
 
         function e:hurt(dmg)
             if not self.flickerer.is_flickering then
-                e:flicker(10)
+                e:flicker(4)
                 if(e.health>0)e.health-=dmg
             end
         end
@@ -222,7 +240,8 @@ function game_state(lvl)
                 del(zmbs, e)
                 -- TODO GIVE POINTS
                 -- TOOD MAKE DEATH SOUND
-                -- TODO EXPLODE ANIM
+                exp:multiexplode(e.x,e.y)
+                if(shake==0)shake=2
                 return
             end
 
@@ -289,7 +308,7 @@ function game_state(lvl)
                 e:set_anim(2) -- idle/confused
             end
         end
-
+        
         function e:hurt(d)
             if not self.flickerer.is_flickering then
                 e:flicker(15)
@@ -334,9 +353,9 @@ function game_state(lvl)
         end
         return e
     end
-    
-    local h = hero(10,10)   add(updas, h) add(draws, h)
-    local g = ghost(120,48) add(updas, g) add(draws, g)
+
+    local g = ghost(120, 48) add(updas, g) add(draws, g)
+    local h = hero(120,80,g) add(updas, h) add(draws, h)
     local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1)
     local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2)
     local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3)
@@ -347,17 +366,20 @@ function game_state(lvl)
         if(h.x > 64)cx=h.x-64
         if(h.x > 192)cx=128
         camera(cx,0)
-
-        sort(draws)
+        cam_shake(cx)
+        exp:update()
 
         for u in all(updas) do
             u:update()
         end
+
+        sort(draws)
     end
 
     s.draw=function()
         cls()
         map(0,0,0,0)
+        exp:draw()
         
         for d in all(draws) do
             d:draw()
@@ -372,6 +394,17 @@ function game_state(lvl)
                 a[j],a[j-1] = a[j-1],a[j]
                 j = j - 1
             end
+        end
+    end
+
+    function cam_shake(cx)
+        if shake>0 then
+            if shake>0.1 then
+                shake*=0.9
+            else
+                shake=0
+            end
+            camera(cx+(rnd()*shake),rnd()*shake)
         end
     end
 
