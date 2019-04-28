@@ -420,6 +420,7 @@ function game_state(lvl)
         e.swrd=sword(x,y,e)
         function e:update()
             if e.health <= 0 then
+                curstate=gameover_state(p,zkills,false)
             end
             if not e.atk then
                 local s=1
@@ -498,6 +499,7 @@ function game_state(lvl)
         function e:update()
             e.tick+=0.1
             if e.health <= 0 then
+                curstate=gameover_state(p,zkills,true)
             end
             if e.health<=e.mhealth and e.tick > 50 then
                 e.tick=0
@@ -816,7 +818,7 @@ function game_state(lvl)
     return s
 end
 
-function gameover_state(points, kills)
+function gameover_state(points, kills, ghostdied)
     local s={}
     local texts={}
     local timeout=2 
@@ -825,8 +827,10 @@ function gameover_state(points, kills)
     music(-1)
     sfx(-1)
     local ty=15
+    local msg="you died"
+    if(ghostdied)msg="the ghost died"
     add(texts, tutils({text="game over",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text=msg,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="points:                  ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
     add(texts, tutils({text="        "..points,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
@@ -837,7 +841,7 @@ function gameover_state(points, kills)
     add(texts, msg)
     s.update=function()
         timeout -= 1/60
-        if(btnp(5) and timeout <= 0) curstate=game_state() 
+        if(btnp(5) and timeout <= 0) curstate=menu_state() 
     end
     cls()
     s.draw=function()
@@ -919,7 +923,7 @@ end
 -- poke(0x5f2d, 1) -- enables mouse support
 function _init()
     --curstate=menu_state()
-    curstate=gameover_state(544,11)
+    curstate=gameover_state(544,11,true)
     -- curstate=win_state(543,140)
 end
 

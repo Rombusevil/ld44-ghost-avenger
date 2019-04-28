@@ -93,7 +93,7 @@ function game_state(lvl)
         
         function e:update()
             if e.health <= 0 then
-                -- TODO GAME OVER SCREEN
+                curstate=gameover_state(p,zkills,false)
             end
 
             -- movement
@@ -197,7 +197,7 @@ function game_state(lvl)
         function e:update()
             e.tick+=0.1
             if e.health <= 0 then
-                -- TODO: GAME OVER
+                curstate=gameover_state(p,zkills,true)
             end
 
             if e.health<=e.mhealth and e.tick > 50 then

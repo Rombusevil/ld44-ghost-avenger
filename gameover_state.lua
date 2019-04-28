@@ -1,5 +1,5 @@
 -- state
-function gameover_state(points, kills)
+function gameover_state(points, kills, ghostdied)
     local s={}
     local texts={}
     local timeout=2 -- for avoiding the user hitting X while playing and by that dismissing this screen. In seconds
@@ -12,8 +12,10 @@ function gameover_state(points, kills)
     sfx(-1)
     
     local ty=15
+    local msg="you died"
+    if(ghostdied)msg="the ghost died"
     add(texts, tutils({text="game over",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text=msg,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
     add(texts, tutils({text="points:                  ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
     add(texts, tutils({text="        "..points,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20

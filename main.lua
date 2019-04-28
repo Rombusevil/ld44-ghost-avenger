@@ -22,7 +22,7 @@ __lua__
 -- poke(0x5f2d, 1) -- enables mouse support
 function _init()
     --curstate=menu_state()
-    curstate=gameover_state(544,11)
+    curstate=gameover_state(544,11,true)
     -- curstate=win_state(543,140)
 end
 
