@@ -22,6 +22,7 @@ __lua__
 -- poke(0x5f2d, 1) -- enables mouse support
 function _init()
     curstate=menu_state()
+    -- curstate=win_state(543,140)
 end
 
 function _update()

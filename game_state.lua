@@ -253,7 +253,6 @@ function game_state(lvl)
                 del(updas, e)
                 del(draws, e)
                 del(zmbs, e)
-                -- TODO GIVE POINTS
                 -- TOOD MAKE DEATH SOUND
                 exp:multiexplode(e.x,e.y)
                 if(shake==0)shake=2
@@ -543,7 +542,7 @@ function game_state(lvl)
         end
 
         -- Spawn Freeze Clock
-        if ct > 5 and #clos==0 then
+        if ct > 20 and #clos==0 then
             local xx=rnd(32)+192
             local yy=rnd(40)+70
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)

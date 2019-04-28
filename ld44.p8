@@ -295,6 +295,10 @@ function menu_state()
     local texts={}
 	add(texts, tutils({text="ghost avenger",centerx=true,y=8,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
 	add(texts, tutils({text="rombosaur studios",centerx=true,y=99,fg=9,sh=2,shadowed=true}))
+	add(texts, tutils({text="ludum dare 44",centerx=true,y=16,fg=4,sh=2,shadowed=true}))
+	add(texts, tutils({text="sword:❎",x=12,y=60-15, fg=0,bg=1,shadowed=true, sh=7}))
+	add(texts, tutils({text="bomb: 🅾️" ,x=12,y=68-15, fg=0,bg=1,shadowed=true, sh=7}))
+	add(texts, tutils({text="move: ⬅️➡️⬆️⬇️",x=12,y=76-15, fg=0,bg=1,shadowed=true, sh=7}))
 	add(texts, tutils({text="press ❎ to start", blink=true, on_time=15, centerx=true,y=80,fg=0,bg=1,shadowed=true, sh=7}))
 	add(texts, tutils({text="v0.1", x=106, y=97}))
 	local ypos = 111
@@ -770,7 +774,7 @@ function game_state(lvl)
             local yy=rnd(40)+70
             local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
         end
-        if ct > 5 and #clos==0 then
+        if ct > 20 and #clos==0 then
             local xx=rnd(32)+192
             local yy=rnd(40)+70
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
@@ -859,7 +863,7 @@ function gameover_state()
     end
     return s
 end
-function win_state()
+function win_state(points,kills)
     local s={}
     local texts={}
     local timeout=2 
@@ -868,18 +872,20 @@ function win_state()
     music(-1)
     sfx(-1)
     local ty=15
+    add(texts, tutils({text="congratulations",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="you've beaten the game" ,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         " ,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
     add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
-    add(texts, tutils({text="                         ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="points:                  ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
+    add(texts, tutils({text="        "..points,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
+    add(texts, tutils({text="kills:                   ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
+    add(texts, tutils({text="        "..kills,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
     local restart_msg = "press ❎ to restart"
     local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
     add(texts, msg)
     s.update=function()
         timeout -= 1/60
-        if(btnp(5) and timeout <= 0) curstate=game_state() 
+        if(btnp(5) and timeout <= 0) curstate=menu_state() 
     end
     cls()
     s.draw=function()
@@ -912,6 +918,7 @@ end
 -- poke(0x5f2d, 1) -- enables mouse support
 function _init()
     curstate=menu_state()
+    -- curstate=win_state(543,140)
 end
 
 function _update()

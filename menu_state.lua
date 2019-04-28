@@ -5,7 +5,11 @@ function menu_state()
     
 	add(texts, tutils({text="ghost avenger",centerx=true,y=8,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
 	add(texts, tutils({text="rombosaur studios",centerx=true,y=99,fg=9,sh=2,shadowed=true}))
-	-- add(texts, tutils({text="shoot: 🅾️   move: ⬅️➡️⬆️⬇️",x=12,y=60, fg=0,bg=1,shadowed=true, sh=7}))
+	add(texts, tutils({text="ludum dare 44",centerx=true,y=16,fg=4,sh=2,shadowed=true}))
+	add(texts, tutils({text="sword:❎",x=12,y=60-15, fg=0,bg=1,shadowed=true, sh=7}))
+	add(texts, tutils({text="bomb: 🅾️" ,x=12,y=68-15, fg=0,bg=1,shadowed=true, sh=7}))
+	add(texts, tutils({text="move: ⬅️➡️⬆️⬇️",x=12,y=76-15, fg=0,bg=1,shadowed=true, sh=7}))
+
 	add(texts, tutils({text="press ❎ to start", blink=true, on_time=15, centerx=true,y=80,fg=0,bg=1,shadowed=true, sh=7}))
 	add(texts, tutils({text="v0.1", x=106, y=97}))
 
