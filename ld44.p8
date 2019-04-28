@@ -353,6 +353,7 @@ function game_state(lvl)
     local bf=true   
     local t=0       
     local ct=0      
+    local p=0       
     function sword(x,y,h)
         local anim_obj=anim()
         anim_obj:add(52,1,1,1,1) 
@@ -544,6 +545,7 @@ function game_state(lvl)
                 zkills+=1
                 bt+=1
                 ct+=1
+                p+=3
                 return
             end
             if not e.fr then
@@ -639,6 +641,7 @@ function game_state(lvl)
                 del(updas,e)
                 del(draws,e)
                 del(spawns,e)
+                p+=100
             end
             if not e.fr then
                 e.tick+=0.1
@@ -686,6 +689,7 @@ function game_state(lvl)
                 del(draws, e)
                 bt=0
                 bf=true
+                p+=10
             end
             if collides(h,e) then
                 exp:multiexplode(e.x,e.y)
@@ -723,6 +727,7 @@ function game_state(lvl)
                     del(updas, e)
                     del(draws, e)
                     del(clos, e)
+                    p+=50
                 end
             end
             if collides(h,e) and e.f then
@@ -746,6 +751,9 @@ function game_state(lvl)
     local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3) add(spawns, sp3)
     local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4) add(spawns, sp4)
     s.update=function()
+        if #spawns == 0 then
+            curstate=win_state()
+        end
         t+=1
         local cx=0
         if(h.x > 64)cx=h.x-64
@@ -762,7 +770,7 @@ function game_state(lvl)
             local yy=rnd(40)+70
             local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
         end
-        if ct > 5 and count(clos)==0 then
+        if ct > 5 and #clos==0 then
             local xx=rnd(32)+192
             local yy=rnd(40)+70
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
@@ -776,6 +784,11 @@ function game_state(lvl)
         for d in all(draws) do
             d:draw()
         end
+        camera(0,0)
+        rectfill(1,0,50,6, 0)
+        print("kills: "..zkills,2,1,7)
+        rectfill(69,0,120,6, 0)
+        print("points: "..p,70,1,7)
     end
     function sort(a)
         for i=1,#a do
@@ -798,6 +811,7 @@ function game_state(lvl)
     end
     return s
 end
+
 function gameover_state()
     local s={}
     local texts={}
