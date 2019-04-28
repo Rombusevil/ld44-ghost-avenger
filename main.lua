@@ -21,8 +21,8 @@ __lua__
 -- to enable mouse support uncomment all of the following commented lines:
 -- poke(0x5f2d, 1) -- enables mouse support
 function _init()
-    --curstate=menu_state()
-    curstate=gameover_state(544,11,true)
+    curstate=menu_state()
+    --curstate=gameover_state(544,11,true)
     -- curstate=win_state(543,140)
 end
 

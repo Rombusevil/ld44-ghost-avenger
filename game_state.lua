@@ -130,11 +130,12 @@ function game_state(lvl)
                     end
                                         
                     g:hurt(g.mhealth/4)
-                    -- TODO: explosion sound
+                    sfx(6)
                 end
             end
             
             if btnp(5) then -- "X"
+                if(not e.atk)sfx(3)
                 e.atk=true
                 e.swrd:atk()
                 e:set_anim(3) -- attack
@@ -173,6 +174,7 @@ function game_state(lvl)
             if not self.flickerer.is_flickering then
                 e:flicker(10)
                 if(e.health>0)e.health-=dmg
+                sfx(1)
             end
         end
         
@@ -220,6 +222,7 @@ function game_state(lvl)
             if not self.flickerer.is_flickering then
                 e:flicker(4)
                 if(e.health>0)e.health-=dmg
+                sfx(2)
             end
         end
 
@@ -260,6 +263,7 @@ function game_state(lvl)
                 bt+=1
                 ct+=1
                 p+=3
+                sfx(4)
                 return
             end
 
@@ -343,6 +347,7 @@ function game_state(lvl)
             if d > 99 or not self.flickerer.is_flickering then
                 e:flicker(15)
                 e.hp-=d
+                sfx(5)
             end
         end
 
@@ -389,6 +394,7 @@ function game_state(lvl)
                 if e.tick > fq then
                     if e.f == 0 then
                         local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
+                        sfx(0)
                     end
 
                     e.f=1
@@ -415,6 +421,7 @@ function game_state(lvl)
         function e:hurt(d)
             e:flicker(3)
             e.health-=d
+            sfx(5)
         end
 
         function e:freeze(flag)
@@ -453,6 +460,7 @@ function game_state(lvl)
                     z:hurt(100)
                 end
                 e.kill=true -- defer killing to next tick
+                sfx(6)
             end
         end
 
@@ -489,6 +497,7 @@ function game_state(lvl)
                     del(draws, e)
                     del(clos, e)
                     p+=50
+                    sfx(8)
                 end
             end
 
@@ -502,6 +511,7 @@ function game_state(lvl)
                     s:freeze(true)
                 end
                 e:flicker(e.expiry)
+                sfx(7)
             end
         end
     
