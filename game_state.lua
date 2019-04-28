@@ -16,6 +16,7 @@ function game_state(lvl)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
+        e.mhealth=10 -- max health
         e.health=10
         
         function e:update()
@@ -24,7 +25,6 @@ function game_state(lvl)
             end
 
             local s=1
-            local im=btn(0)or btn(1)or btn(2)or btn(3)
             if btn(0) then     --left
                 e:setx(e.x-s)
                 e.flipx=true
@@ -33,7 +33,7 @@ function game_state(lvl)
                 e.flipx=false
             end
             
-            if btn(2) then          --up
+            if btn(2) then      --up
                 e:sety(e.y-s)
             elseif btn(3) then  --down
                 e:sety(e.y+s)
@@ -54,7 +54,7 @@ function game_state(lvl)
             
             end
 
-            if im then 
+            if btn(0)or btn(1)or btn(2)or btn(3) then 
                 e:set_anim(2)
             else
                 e:set_anim(1)
@@ -62,12 +62,24 @@ function game_state(lvl)
 
         end
 
+        e._draw=e.draw
+        function e:draw()
+            e:_draw()
+            -- Draw life bar
+            local hbl=7 -- health bar length (in px)
+            local hb=e.health*hbl/e.mhealth --health bar
+            rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 9)
+            rectfill(e.x,e.y-4, e.x+hb,  e.y-3, 3)
+        end
+
         return e
     end
 
-    function zombie(x,y,h)
+    function zombie(x,y,h,g)
+        -- @args: x,y, hero, ghost
         local anim_obj=anim()
-        anim_obj:add(39,4,0.2,1,1)
+        anim_obj:add(39,4,0.2,1,1) -- walk
+        anim_obj:add(71,4,0.1,1,1) -- idle/confused
     
         local e=entity(anim_obj)
         e:setpos(x,y)
@@ -76,29 +88,77 @@ function game_state(lvl)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
+        e.arr=false -- arrived to destination
+        e.ct=5      -- cool off timer
+        e.tick=0
         
         function e:update()
             local s=0.3 -- speed
-            if h.x > e.x then
-                e.flipx=false
-                e:setx(e.x+s)
-            elseif h.x < e.x then
-                e.flipx=true
-                e:setx(e.x-s)
+      
+            -- zombie center
+            local cx=e.x+4
+            local cy=e.y+4
+
+            local dy=cy-(h.y+4)
+            local dx=cx-(h.x+4)
+            local hd=abs(sqrt((dy*dy)+(dx*dx)))  -- hero distance
+            dy=cy-(g.y+16)
+            dx=cx-(g.x+8)
+            local gd=abs(sqrt((dy*dy)+(dx*dx)))  -- ghost distance
+
+            -- target: hero or ghost?
+            local tx=h.x+4 
+            local ty=h.y+4
+            local d=hd
+            if hd > gd then
+                tx=g.x+8
+                ty=g.y+16
+                d=gd
             end
 
-            if h.y > e.y then
-                e:sety(e.y+s)
-            elseif h.y < e.y then
-                e:sety(e.y-s)
+            -- movement towards target
+            if(e.arr)e.tick+=0.1
+            if e.tick > e.ct then
+                e.tick=0  e.arr=false 
+                e:set_anim(1) -- walk
+            end
+
+            if d <= 2 then -- arrived
+                e.arr=true
+                -- ATTACK ANIM
+            elseif not e.arr then
+                -- move to target
+                local ang=atan2(cx-tx,cy-ty)
+                local fx=abs(cos(ang)*s)
+                local fy=abs(sin(ang)*s)
+
+                if tx > e.x then
+                    e:setx(e.x+fx) e.flipx=false
+                elseif tx < e.x then
+                    e:setx(e.x-fx) e.flipx=true
+                end
+
+                if ty > e.y then
+                    e:sety(e.y+fy)
+                elseif ty < e.y then
+                    e:sety(e.y-fy)
+                end
+            else
+                -- in cool off mode, but not close to target
+                e:set_anim(2) -- idle
             end
         end
+
+        -- e._draw=e.draw
+        -- function e:draw()
+        --     e:_draw()    -- ghost
+        -- end
 
         return e
     end
     
-    function spawner(x,y,h,fq)
-        -- @args: x,y, hero, frequency for spawning
+    function spawner(x,y,h,fq,g)
+        -- @args: x,y, hero, frequency for spawning, ghost
 
         local anim_obj=anim()
         anim_obj:add(37,1,0.1,2,2)
@@ -119,14 +179,14 @@ function game_state(lvl)
             e.tick+=0.1
             if e.tick > fq then
                 if e.f == 0 then
-                    local z=zombie(x,y,h) add(updas,z) add(draws,z)
+                    local z=zombie(x,y,h,g) add(updas,z) add(draws,z)
                 end
 
                 e.f=1
 
                 if e.tick > e.co then 
                     e.tick=0
-                    e.f=0
+                    --e.f=0 TODO: DEBUG
                 end
             end
         end
@@ -141,7 +201,7 @@ function game_state(lvl)
         e:setpos(x,y)
         e:set_anim(1)
         e.mhealth=100 -- max health
-        e.health=80
+        e.health=100
     
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
@@ -166,10 +226,10 @@ function game_state(lvl)
     local h = hero(10,10) add(updas, h) add(draws, h)
     local g = ghost(120,48) add(updas, g) add(draws, g)
 
-    local sp1 = spawner(16,16,h,5) add(updas, sp1) add(draws, sp1)
-    local sp2 = spawner(224,16,h,7) add(updas, sp2) add(draws, sp2)
-    local sp3 = spawner(224,96,h,11) add(updas, sp3) add(draws, sp3)
-    local sp4 = spawner(16,96,h,6) add(updas, sp4) add(draws, sp4)
+    local sp1 = spawner(16,16,h,5,g)   add(updas, sp1) add(draws, sp1)
+    -- local sp2 = spawner(224,16,h,7,g)  add(updas, sp2) add(draws, sp2)
+    -- local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3)
+    -- local sp4 = spawner(16,96,h,6,g)   add(updas, sp4) add(draws, sp4)
 
     s.update=function()
         local cx=0

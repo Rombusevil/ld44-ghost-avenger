@@ -307,12 +307,12 @@ function game_state(lvl)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
+        e.mhealth=10 
         e.health=10
         function e:update()
             if e.health <= 0 then
             end
             local s=1
-            local im=btn(0)or btn(1)or btn(2)or btn(3)
             if btn(0) then     
                 e:setx(e.x-s)
                 e.flipx=true
@@ -320,7 +320,7 @@ function game_state(lvl)
                 e:setx(e.x+s)
                 e.flipx=false
             end
-            if btn(2) then          
+            if btn(2) then      
                 e:sety(e.y-s)
             elseif btn(3) then  
                 e:sety(e.y+s)
@@ -333,41 +333,81 @@ function game_state(lvl)
             end
             if btnp(5) then 
             end
-            if im then 
+            if btn(0)or btn(1)or btn(2)or btn(3) then 
                 e:set_anim(2)
             else
                 e:set_anim(1)
             end
         end
+        e._draw=e.draw
+        function e:draw()
+            e:_draw()
+            local hbl=7 
+            local hb=e.health*hbl/e.mhealth 
+            rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 9)
+            rectfill(e.x,e.y-4, e.x+hb,  e.y-3, 3)
+        end
         return e
     end
-    function zombie(x,y,h)
+    function zombie(x,y,h,g)
         local anim_obj=anim()
-        anim_obj:add(39,4,0.2,1,1)
+        anim_obj:add(39,4,0.2,1,1) 
+        anim_obj:add(71,4,0.1,1,1) 
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
+        e.arr=false 
+        e.ct=5      
+        e.tick=0
         function e:update()
             local s=0.3 
-            if h.x > e.x then
-                e.flipx=false
-                e:setx(e.x+s)
-            elseif h.x < e.x then
-                e.flipx=true
-                e:setx(e.x-s)
+            local cx=e.x+4
+            local cy=e.y+4
+            local dy=cy-(h.y+4)
+            local dx=cx-(h.x+4)
+            local hd=abs(sqrt((dy*dy)+(dx*dx)))  
+            dy=cy-(g.y+16)
+            dx=cx-(g.x+8)
+            local gd=abs(sqrt((dy*dy)+(dx*dx)))  
+            local tx=h.x+4 
+            local ty=h.y+4
+            local d=hd
+            if hd > gd then
+                tx=g.x+8
+                ty=g.y+16
+                d=gd
             end
-            if h.y > e.y then
-                e:sety(e.y+s)
-            elseif h.y < e.y then
-                e:sety(e.y-s)
+            if(e.arr)e.tick+=0.1
+            if e.tick > e.ct then
+                e.tick=0  e.arr=false 
+                e:set_anim(1) 
+            end
+            if d <= 2 then 
+                e.arr=true
+            elseif not e.arr then
+                local ang=atan2(cx-tx,cy-ty)
+                local fx=abs(cos(ang)*s)
+                local fy=abs(sin(ang)*s)
+                if tx > e.x then
+                    e:setx(e.x+fx) e.flipx=false
+                elseif tx < e.x then
+                    e:setx(e.x-fx) e.flipx=true
+                end
+                if ty > e.y then
+                    e:sety(e.y+fy)
+                elseif ty < e.y then
+                    e:sety(e.y-fy)
+                end
+            else
+                e:set_anim(2) 
             end
         end
         return e
     end
-    function spawner(x,y,h,fq)
+    function spawner(x,y,h,fq,g)
         local anim_obj=anim()
         anim_obj:add(37,1,0.1,2,2)
         local e=entity(anim_obj)
@@ -382,12 +422,11 @@ function game_state(lvl)
             e.tick+=0.1
             if e.tick > fq then
                 if e.f == 0 then
-                    local z=zombie(x,y,h) add(updas,z) add(draws,z)
+                    local z=zombie(x,y,h,g) add(updas,z) add(draws,z)
                 end
                 e.f=1
                 if e.tick > e.co then 
                     e.tick=0
-                    e.f=0
                 end
             end
         end
@@ -400,7 +439,7 @@ function game_state(lvl)
         e:setpos(x,y)
         e:set_anim(1)
         e.mhealth=100 
-        e.health=80
+        e.health=100
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
         function e:update()
@@ -418,10 +457,7 @@ function game_state(lvl)
     end
     local h = hero(10,10) add(updas, h) add(draws, h)
     local g = ghost(120,48) add(updas, g) add(draws, g)
-    local sp1 = spawner(16,16,h,5) add(updas, sp1) add(draws, sp1)
-    local sp2 = spawner(224,16,h,7) add(updas, sp2) add(draws, sp2)
-    local sp3 = spawner(224,96,h,11) add(updas, sp3) add(draws, sp3)
-    local sp4 = spawner(16,96,h,6) add(updas, sp4) add(draws, sp4)
+    local sp1 = spawner(16,16,h,5,g)   add(updas, sp1) add(draws, sp1)
     s.update=function()
         local cx=0
         if(h.x > 64)cx=h.x-64
@@ -599,14 +635,14 @@ d1111111dd111111d111111111111111111111110000000000000000003333000038330000333300
 1111111dd11111111111111dd1111111057600000052656666566500000cccc0000bb000000c5550000bb0000000000000499499994994000049949999499400
 11111111d11111d111111111d1111111055550000005526666655000005550c0000cc00000cc0050000c50000000000000049499994940000004949999494000
 1d11111111111dd11d111111111111115005000000005555555500000000000000500c000000000000c005000000000000004444444400000000444444440000
-00444400004444000044440000000000000000000000000000444400000000000000000000000000000000000000000000000000000000000000000000000000
-004fdf0000fdfd00004fdf0000444400004444000044440000fdfd00000000000000000000000000000000000000000000000000000000000000000000000000
-00ffff0000ffff0000ffff0000fdfd0000dfdf0000fdfd0000ffff00000000000000000000000000000000000000000000000000000000000000000000000000
-000bb00000bbbb00000bb00000ffff0000ffff0000ffff0000bbbb00000000000000000000000000000000000000000000000000000000000000000000000000
-00fbbf000f0bb0f000fbbf0000bbbb0000bbbb0000bbbb000f0bb0f0000000000000000000000000000000000000000000000000000000000000000000000000
-0f0bb0f0000bb0000f0bb0f000fbbf0000fbbf0000fbbf00000bb000000000000000000000000000000000000000000000000000000000000000000000000000
-000cc000000cc000000cc000000bb000000bb000000bb000000cc000000000000000000000000000000000000000000000000000000000000000000000000000
-000cc000000cc000000cc00000c0c000000cc000000cc000000cc000000000000000000000000000000000000000000000000000000000000000000000000000
+00444400004444000044440000000000000000000000000000444400000333000033330000333300003333000000000000000000000000000000000000000000
+004fdf0000fdfd00004fdf0000444400004444000044440000fdfd00003338000038380000838300003838000000000000000000000000000000000000000000
+00ffff0000ffff0000ffff0000fdfd0000dfdf0000fdfd0000ffff00003833000033330000333300003333000000000000000000000000000000000000000000
+000bb00000bbbb00000bb00000ffff0000ffff0000ffff0000bbbb00003330000004430000344000000443000000000000000000000000000000000000000000
+00fbbf000f0bb0f000fbbf0000bbbb0000bbbb0000bbbb000f0bb0f0000443000034400000044300003440000000000000000000000000000000000000000000
+0f0bb0f0000bb0000f0bb0f000fbbf0000fbbf0000fbbf00000bb000003440000004400000044000000440000000000000000000000000000000000000000000
+000cc000000cc000000cc000000bb000000bb000000bb000000cc000000440000004400000044000000440000000000000000000000000000000000000000000
+000cc000000cc000000cc00000c0c000000cc000000cc000000cc000000530000005300000053000000530000000000000000000000000000000000000000000
 __map__
 0203040502030405020304050203040502030405020304050203040502030405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 1224242424242424242424242424242424242424242424242424242424242405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
