@@ -316,7 +316,7 @@ function menu_state()
 	local frfg=6
 	state.update=function()
 		camera(0,0)
-        if(btnp(5)) curstate=game_state(1) 
+        if(btnp(5)) curstate=instructions_state() 
 	end
 	cls()
 	state.draw=function()
@@ -935,6 +935,51 @@ function win_state(points,kills)
     add(texts, tutils({text="        "..points,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
     add(texts, tutils({text="kills:                   ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
     add(texts, tutils({text="        "..kills,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=20
+    local restart_msg = "press ❎ to restart"
+    local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
+    add(texts, msg)
+    s.update=function()
+        camera(0,0)
+        timeout -= 1/60
+        if(btnp(5) and timeout <= 0) curstate=menu_state() 
+    end
+    cls()
+    s.draw=function()
+        dance_bkg(10,frbkg)
+        local frame_x0=10	
+        local frame_y0=10
+        local frame_x1=128-frame_x0	
+        local frame_y1=128-frame_y0
+        rectfill(frame_x0  ,frame_y0-1, frame_x1, frame_y1  , 7)
+        rectfill(frame_x0-1,frame_y0+1, frame_x1+1, frame_y1-1, 7)
+        rectfill(frame_x0+1,frame_x0  , frame_x1-1, frame_y1-1, 0)
+        rectfill(frame_x0  ,frame_x0+1, frame_x1  , frame_y1-2, 0)
+        rectfill(frame_x0+2,frame_x0+1, frame_x1-2, frame_y1-2, frfg)
+        rectfill(frame_x0+1,frame_x0+2, frame_x1-1, frame_y1-3, frfg)
+        if(timeout > 0)then
+            local t = flr(timeout) + 1
+            msg.text = "wait for it... ("..t..")"
+        else
+            msg.text = restart_msg
+        end
+        for t in all(texts) do
+            t:draw()
+        end
+    end
+    return s
+end
+function instructions_state()
+    local s={}
+    local texts={}
+    local timeout=2 
+    local frbkg=1
+    local frfg=6
+    local ty=15
+    add(texts, tutils({text="instructions",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="-protect the ghost       " ,centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
+    add(texts, tutils({text="-destroy all the spawners",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="-o button takes life from",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10
+    add(texts, tutils({text="the ghost. Use it wisely  ",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))ty+=10
     local restart_msg = "press ❎ to restart"
     local msg = tutils({text="", blink=true, on_time=15, centerx=true,y=110,fg=0,bg=1,bordered=false,shadowed=true,sh=7})
     add(texts, msg)

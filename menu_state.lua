@@ -33,7 +33,7 @@ function menu_state()
 		
 	state.update=function()
 		camera(0,0)
-        if(btnp(5)) curstate=game_state(1) -- "X"
+        if(btnp(5)) curstate=instructions_state() -- "X"
 	end
 	
 	cls()

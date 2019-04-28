@@ -16,6 +16,7 @@ __lua__
 --<*game_state.lua
 --<*gameover_state.lua
 --<*win_state.lua
+--<*instructions_state.lua
 --------------------------- end imports
 
 -- to enable mouse support uncomment all of the following commented lines:
