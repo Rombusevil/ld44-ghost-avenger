@@ -297,10 +297,43 @@ function game_state(lvl)
     local s={}
     local updas={}
     local draws={}
+    function sword(x,y,h)
+        local anim_obj=anim()
+        anim_obj:add(52,1,1,1,1) 
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+        ad=function()
+            h:stop_atk()
+            e:set_anim(1) 
+            e:setx(h.x)
+            e:sety(h.y)
+        end
+        anim_obj:add(84,4,0.75,1,2,true,ad) 
+        local bounds_obj=bbox(8,16)
+        e:set_bounds(bounds_obj)
+        function e:update()
+            local xo=0
+            local yo=0
+            local fx=1
+            if(h.flipx)fx=-1
+            if(h.atk)xo=8*fx
+            if(h.atk)yo=-3
+            e.flipx=h.flipx
+            e:setx(h.x+xo)
+            e:sety(h.y+yo)
+        end
+        function e:atk()
+            e:setx(e.x+16)
+            e:set_anim(2)
+        end
+        return e
+    end
     function hero(x,y)
         local anim_obj=anim()
-        anim_obj:add(64,7,0.05,1,1)
-        anim_obj:add(55,4,0.3,1,1)
+        anim_obj:add(64,7,0.05,1,1) 
+        anim_obj:add(55,4,0.3,1,1)  
+        anim_obj:add(88,1,0.3,1,1)  
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
@@ -309,21 +342,25 @@ function game_state(lvl)
         e.debugbounds=false
         e.mhealth=10 
         e.health=10
+        e.atk=false  
+        e.swrd=sword(x,y,e)
         function e:update()
             if e.health <= 0 then
             end
-            local s=1
-            if btn(0) then     
-                e:setx(e.x-s)
-                e.flipx=true
-            elseif btn(1) then 
-                e:setx(e.x+s)
-                e.flipx=false
-            end
-            if btn(2) then      
-                e:sety(e.y-s)
-            elseif btn(3) then  
-                e:sety(e.y+s)
+            if not e.atk then
+                local s=1
+                if btn(0) then     
+                    e:setx(e.x-s)
+                    e.flipx=true
+                elseif btn(1) then 
+                    e:setx(e.x+s)
+                    e.flipx=false
+                end
+                if btn(2) then      
+                    e:sety(e.y-s)
+                elseif btn(3) then  
+                    e:sety(e.y+s)
+                end
             end
             if(e.x < 8)e:setx(8)
             if(e.x > 240)e:setx(240)
@@ -332,20 +369,62 @@ function game_state(lvl)
             if btnp(4) then 
             end
             if btnp(5) then 
+                e.atk=true
+                e.swrd:atk()
+                e:set_anim(3) 
             end
-            if btn(0)or btn(1)or btn(2)or btn(3) then 
-                e:set_anim(2)
-            else
-                e:set_anim(1)
+            if not e.atk then
+                if btn(0)or btn(1)or btn(2)or btn(3) then 
+                    e:set_anim(2) 
+                else
+                    e:set_anim(1) 
+                end
             end
+            e.swrd:update()
         end
         e._draw=e.draw
         function e:draw()
+            if(not e.atk)e.swrd:draw()
             e:_draw()
+            if(e.atk)e.swrd:draw()
             local hbl=7 
             local hb=e.health*hbl/e.mhealth 
             rectfill(e.x,e.y-4, e.x+hbl, e.y-3, 9)
             rectfill(e.x,e.y-4, e.x+hb,  e.y-3, 3)
+        end
+        function e:stop_atk()
+            e.atk=false   
+        end
+        function e:hurt(dmg)
+            if(e.health>0)e.health-=dmg
+        end
+        return e
+    end
+    function ghost(x,y)
+        local anim_obj=anim()
+        anim_obj:add(8,4,0.2,2,2)
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+        e.mhealth=100 
+        e.health=100
+        local bounds_obj=bbox(16,16)
+        e:set_bounds(bounds_obj)
+        function e:update()
+            if e.health <= 0 then
+            end
+        end
+        e._draw=e.draw
+        function e:draw()
+            spr(6, x,y+8, 2, 2) 
+            e:_draw()    
+            local hbl=15 
+            local hb=e.health*hbl/e.mhealth 
+            rectfill(x,y-2, x+hbl, y-1, 9)
+            rectfill(x,y-2, x+hb,  y-1, 3)
+        end
+        function e:hurt(dmg)
+            if(e.health>0)e.health-=dmg
         end
         return e
     end
@@ -353,12 +432,14 @@ function game_state(lvl)
         local anim_obj=anim()
         anim_obj:add(39,4,0.2,1,1) 
         anim_obj:add(71,4,0.1,1,1) 
+        anim_obj:add(80,4,0.3,1,1) 
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
+        e.dmg=0.4   
         e.arr=false 
         e.ct=5      
         e.tick=0
@@ -372,21 +453,23 @@ function game_state(lvl)
             dy=cy-(g.y+16)
             dx=cx-(g.x+8)
             local gd=abs(sqrt((dy*dy)+(dx*dx)))  
+            local t=h   
+            local d=hd  
             local tx=h.x+4 
             local ty=h.y+4
-            local d=hd
             if hd > gd then
-                tx=g.x+8
-                ty=g.y+16
-                d=gd
+                t=g  d=gd
+                tx=g.x+8  ty=g.y+16
             end
             if(e.arr)e.tick+=0.1
             if e.tick > e.ct then
                 e.tick=0  e.arr=false 
                 e:set_anim(1) 
             end
-            if d <= 2 then 
-                e.arr=true
+            if d <= 5 then
+                e.arr=true    
+                e:set_anim(3) 
+                t:hurt(e.dmg)
             elseif not e.arr then
                 local ang=atan2(cx-tx,cy-ty)
                 local fx=abs(cos(ang)*s)
@@ -432,32 +515,12 @@ function game_state(lvl)
         end
         return e
     end
-    function ghost(x,y)
-        local anim_obj=anim()
-        anim_obj:add(8,4,0.2,2,2)
-        local e=entity(anim_obj)
-        e:setpos(x,y)
-        e:set_anim(1)
-        e.mhealth=100 
-        e.health=100
-        local bounds_obj=bbox(16,16)
-        e:set_bounds(bounds_obj)
-        function e:update()
-        end
-        e._draw=e.draw
-        function e:draw()
-            spr(6, x,y+8, 2, 2) 
-            e:_draw()    
-            local hbl=15 
-            local hb=e.health*hbl/e.mhealth 
-            rectfill(x,y-2, x+hbl, y-1, 9)
-            rectfill(x,y-2, x+hb,  y-1, 3)
-        end
-        return e
-    end
-    local h = hero(10,10) add(updas, h) add(draws, h)
+    local h = hero(10,10)   add(updas, h) add(draws, h)
     local g = ghost(120,48) add(updas, g) add(draws, g)
-    local sp1 = spawner(16,16,h,5,g)   add(updas, sp1) add(draws, sp1)
+    local sp1 = spawner(16 ,16,h,5 ,g) add(updas, sp1) add(draws, sp1)
+    local sp2 = spawner(224,16,h,7 ,g) add(updas, sp2) add(draws, sp2)
+    local sp3 = spawner(224,96,h,11,g) add(updas, sp3) add(draws, sp3)
+    local sp4 = spawner(16 ,96,h,6 ,g) add(updas, sp4) add(draws, sp4)
     s.update=function()
         local cx=0
         if(h.x > 64)cx=h.x-64
@@ -627,14 +690,14 @@ d1111111dd111111d111111111111111111111110000000000000000003333000038330000333300
 11111111111111111111111111111111111111110000556668550000000440000004430000044500005440000004450000000000000000000000000bb0000000
 1111111dd11111111111111111111111111111110005256686565000000440000004440000044000003440000004400000000444444000000000044444400000
 111111ddd11111111111111111111111111111110005625555685000000530000050030000305000000050000030500000004499994400000000449999440000
-111111dd111111111111111111111111000006670005265665865000004444000044440000444400004444000000000000049499994940000004949999494000
-111111d11111111111111111111111110000067600526256656865000044fd00004fdf0000fdfd00004fdf000000000000049494494940000004949449494000
-1111111111111111111111111111111100006766005625666656650000ffff0000ffff0000ffff0000ffff000000000000499949949994000049994994999400
-11111111111111111111111111111111050676000562656666566650000bfff0000bb0000ffbb660000fb0000000000000499499994994000049949999499400
-11111111111111111111111111111111556760000526256666566650066bb000000bff000f0bb00000fbb6000000000000499499994994000049949999499400
-1111111dd11111111111111dd1111111057600000052656666566500000cccc0000bb000000c5550000bb0000000000000499499994994000049949999499400
-11111111d11111d111111111d1111111055550000005526666655000005550c0000cc00000cc0050000c50000000000000049499994940000004949999494000
-1d11111111111dd11d111111111111115005000000005555555500000000000000500c000000000000c005000000000000004444444400000000444444440000
+111111dd111111111111111111111111000050050005265665865000004444000044440000444400004444000000000000049499994940000004949999494000
+111111d11111111111111111111111110005555000526256656865000044fd00004fdf0000fdfd00004fdf000000000000049494494940000004949449494000
+1111111111111111111111111111111100006750005625666656650000ffff0000ffff0000ffff0000ffff000000000000499949949994000049994994999400
+11111111111111111111111111111111000676550562656666566650000bfff0000bb0000ffbb660000fb0000000000000499499994994000049949999499400
+11111111111111111111111111111111006760500526256666566650066bb000000bff000f0bb00000fbb6000000000000499499994994000049949999499400
+1111111dd11111111111111dd1111111667600000052656666566500000cccc0000bb000000c5550000bb0000000000000499499994994000049949999499400
+11111111d11111d111111111d1111111676000000005526666655000005550c0000cc00000cc0050000c50000000000000049499994940000004949999494000
+1d11111111111dd11d111111111111117660000000005555555500000000000000500c000000000000c005000000000000004444444400000000444444440000
 00444400004444000044440000000000000000000000000000444400000333000033330000333300003333000000000000000000000000000000000000000000
 004fdf0000fdfd00004fdf0000444400004444000044440000fdfd00003338000038380000838300003838000000000000000000000000000000000000000000
 00ffff0000ffff0000ffff0000fdfd0000dfdf0000fdfd0000ffff00003833000033330000333300003333000000000000000000000000000000000000000000
@@ -643,6 +706,19 @@ d1111111dd111111d111111111111111111111110000000000000000003333000038330000333300
 0f0bb0f0000bb0000f0bb0f000fbbf0000fbbf0000fbbf00000bb000003440000004400000044000000440000000000000000000000000000000000000000000
 000cc000000cc000000cc000000bb000000bb000000bb000000cc000000440000004400000044000000440000000000000000000000000000000000000000000
 000cc000000cc000000cc00000c0c000000cc000000cc000000cc000000530000005300000053000000530000000000000000000000000000000000000000000
+00383800000033000038330000003300000000000000000000000600000000000004444000000000000000000000000000000000000000000000000000000000
+303333000003833308333e000003833306676000000600600060000000000000000fdfd000000000000000000000000000000000000000000000000000000000
+0303ee00003333800333eee00033338060667600600060060000600600060000000ffff000000000000000000000000000000000000000000000000000000000
+00343300003333330333eee30033333306067600060006670600060000000600000bbb0000000000000000000000000000000000000000000000000000000000
+0004400000433eee0033333300433eee00076000006067760000060600600000000bbbf500000000000000000000000000000000000000000000000000000000
+0004400000433ee00043335000433ee006676000006676600006666600000606000bb00000000000000000000000000000000000000000000000000000000000
+00044000004433e000444000004433e056766000567760005666777755500600000cccc000000000000000000000000000000000000000000000000000000000
+005003000503000000503000050300005566000057660000577766665666006000cc00c000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000555000005550000055560000576666600000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000567766660000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000006676600000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000667660000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000066600000000000000000000000000000000000000000000000000000000000000000
 __map__
 0203040502030405020304050203040502030405020304050203040502030405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 1224242424242424242424242424242424242424242424242424242424242405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
