@@ -387,6 +387,8 @@ function game_state(lvl)
                 del(draws,e)
                 del(spawns,e)
                 p+=100
+                sfx(6)
+                sfx(10)
             end
 
             if not e.fr then
@@ -552,6 +554,7 @@ function game_state(lvl)
 
         -- Spawn Freeze Clock
         if ct > 20 and #clos==0 then
+            sfx(9)
             local xx=rnd(32)+192
             local yy=rnd(40)+70
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)

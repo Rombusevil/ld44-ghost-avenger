@@ -10,6 +10,7 @@ function win_state(points,kills)
 
     music(-1)
     sfx(-1)
+    camera(0,0)
     
     local ty=15
     add(texts, tutils({text="congratulations",centerx=true,y=ty,fg=8,bg=0,bordered=true,shadowed=true,sh=2})) ty+=10

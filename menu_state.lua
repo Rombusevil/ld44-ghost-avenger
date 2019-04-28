@@ -2,7 +2,7 @@
 function menu_state()
     local state={}
     local texts={}
-    
+    camera(0,0)
 	add(texts, tutils({text="ghost avenger",centerx=true,y=8,fg=8,bg=0,bordered=true,shadowed=true,sh=2}))
 	add(texts, tutils({text="rombosaur studios",centerx=true,y=99,fg=9,sh=2,shadowed=true}))
 	add(texts, tutils({text="ludum dare 44",centerx=true,y=16,fg=4,sh=2,shadowed=true}))

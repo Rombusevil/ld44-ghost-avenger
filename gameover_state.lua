@@ -7,7 +7,7 @@ function gameover_state(points, kills, ghostdied)
     -- graphical frame 
     local frbkg=8
     local frfg=6
-
+    camera(0,0)
     music(-1)
     sfx(-1)
     
