@@ -447,17 +447,19 @@ function game_state(lvl)
             local s=0.3 
             local cx=e.x+4
             local cy=e.y+4
-            local dy=cy-(h.y+4)
-            local dx=cx-(h.x+4)
+            local dy=abs(cy-(h.y+4))
+            local dx=abs(cx-(h.x+4))
+            local m=max(dy,dx)  dy=dy/m  dx=dx/m
             local hd=abs(sqrt((dy*dy)+(dx*dx)))  
             dy=cy-(g.y+16)
             dx=cx-(g.x+8)
+            m=max(dy,dx)  dy=dy/m  dx=dx/m
             local gd=abs(sqrt((dy*dy)+(dx*dx)))  
             local t=h   
             local d=hd  
             local tx=h.x+4 
             local ty=h.y+4
-            if hd > gd then
+            if hd > gd or (h.x< 64 and e.x > 128)then
                 t=g  d=gd
                 tx=g.x+8  ty=g.y+16
             end
@@ -466,7 +468,7 @@ function game_state(lvl)
                 e.tick=0  e.arr=false 
                 e:set_anim(1) 
             end
-            if d <= 5 then
+            if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
                 e.arr=true    
                 e:set_anim(3) 
                 t:hurt(e.dmg)
@@ -505,7 +507,7 @@ function game_state(lvl)
             e.tick+=0.1
             if e.tick > fq then
                 if e.f == 0 then
-                    local z=zombie(x,y,h,g) add(updas,z) add(draws,z)
+                    local z=zombie(x+8,y+8,h,g) add(updas,z) add(draws,z)
                 end
                 e.f=1
                 if e.tick > e.co then 
