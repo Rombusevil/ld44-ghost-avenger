@@ -7,7 +7,7 @@ __lua__
 --<*sff/entity.lua
 --<*sff/timer.lua
 --<*sff/tutils.lua
---  --<*sff/collision.lua
+--<*sff/collision.lua
 --  --<*sff/explosions.lua
 --  --<*sff/buttons.lua
 

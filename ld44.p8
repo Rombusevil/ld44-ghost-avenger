@@ -221,7 +221,23 @@ function tutils(args)
 	return s
 end
 
---  --<*sff/collision.lua
+function collides(ent1, ent2)
+    local e1b=ent1.bounds
+    local e2b=ent2.bounds
+    if  ((e1b.xoff1 <= e2b.xoff2 and e1b.xoff2 >= e2b.xoff1)
+    and (e1b.yoff1 <= e2b.yoff2 and e1b.yoff2 >= e2b.yoff1)) then 
+        return true
+    end
+    return false
+end
+function point_collides(x,y, ent)
+    local eb=ent.bounds
+    if  ((eb.xoff1 <= x and eb.xoff2 >= x)
+    and (eb.yoff1 <= y and eb.yoff2 >= y)) then 
+        return true
+    end
+    return false
+end
 --  --<*sff/explosions.lua
 --  --<*sff/buttons.lua
 
@@ -297,6 +313,7 @@ function game_state(lvl)
     local s={}
     local updas={}
     local draws={}
+    local zmbs={}
     function sword(x,y,h)
         local anim_obj=anim()
         anim_obj:add(52,1,1,1,1) 
@@ -310,15 +327,23 @@ function game_state(lvl)
             e:sety(h.y)
         end
         anim_obj:add(84,4,0.75,1,2,true,ad) 
-        local bounds_obj=bbox(8,16)
+        local bounds_obj=bbox(8,16, 0,0,0,4)
         e:set_bounds(bounds_obj)
+        e.debugbounds=true
         function e:update()
             local xo=0
             local yo=0
             local fx=1
             if(h.flipx)fx=-1
-            if(h.atk)xo=8*fx
-            if(h.atk)yo=-3
+            if h.atk then
+                xo=8*fx
+                yo=-3
+                for z in all(zmbs) do
+                    if collides(z,e) then
+                        z:hurt(1)
+                    end
+                end
+            end
             e.flipx=h.flipx
             e:setx(h.x+xo)
             e:sety(h.y+yo)
@@ -396,7 +421,10 @@ function game_state(lvl)
             e.atk=false   
         end
         function e:hurt(dmg)
-            if(e.health>0)e.health-=dmg
+            if not self.flickerer.is_flickering then
+                e:flicker(10)
+                if(e.health>0)e.health-=dmg
+            end
         end
         return e
     end
@@ -424,7 +452,10 @@ function game_state(lvl)
             rectfill(x,y-2, x+hb,  y-1, 3)
         end
         function e:hurt(dmg)
-            if(e.health>0)e.health-=dmg
+            if not self.flickerer.is_flickering then
+                e:flicker(10)
+                if(e.health>0)e.health-=dmg
+            end
         end
         return e
     end
@@ -436,6 +467,7 @@ function game_state(lvl)
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
+        add(zmbs, e)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
@@ -443,7 +475,14 @@ function game_state(lvl)
         e.arr=false 
         e.ct=5      
         e.tick=0
+        e.hp=3      
         function e:update()
+            if e.hp <= 0 then
+                del(updas, e)
+                del(draws, e)
+                del(zmbs, e)
+                return
+            end
             local s=0.3 
             local cx=e.x+4
             local cy=e.y+4
@@ -468,26 +507,36 @@ function game_state(lvl)
                 e.tick=0  e.arr=false 
                 e:set_anim(1) 
             end
-            if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
-                e.arr=true    
-                e:set_anim(3) 
-                t:hurt(e.dmg)
-            elseif not e.arr then
-                local ang=atan2(cx-tx,cy-ty)
-                local fx=abs(cos(ang)*s)
-                local fy=abs(sin(ang)*s)
-                if tx > e.x then
-                    e:setx(e.x+fx) e.flipx=false
-                elseif tx < e.x then
-                    e:setx(e.x-fx) e.flipx=true
-                end
-                if ty > e.y then
-                    e:sety(e.y+fy)
-                elseif ty < e.y then
-                    e:sety(e.y-fy)
+            if not self.flickerer.is_flickering then
+                if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
+                    e.arr=true    
+                    e:set_anim(3) 
+                    t:hurt(e.dmg)
+                elseif not e.arr then
+                    local ang=atan2(cx-tx,cy-ty)
+                    local fx=abs(cos(ang)*s)
+                    local fy=abs(sin(ang)*s)
+                    if tx > e.x then
+                        e:setx(e.x+fx) e.flipx=false
+                    elseif tx < e.x then
+                        e:setx(e.x-fx) e.flipx=true
+                    end
+                    if ty > e.y then
+                        e:sety(e.y+fy)
+                    elseif ty < e.y then
+                        e:sety(e.y-fy)
+                    end
+                else
+                    e:set_anim(2) 
                 end
             else
                 e:set_anim(2) 
+            end
+        end
+        function e:hurt(d)
+            if not self.flickerer.is_flickering then
+                e:flicker(15)
+                e.hp-=d
             end
         end
         return e
@@ -500,7 +549,7 @@ function game_state(lvl)
         e:set_anim(1)
         e.tick=0
         e.f=0       
-        e.co=fq+30  
+        e.co=fq+10  
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
         function e:update()
@@ -512,6 +561,7 @@ function game_state(lvl)
                 e.f=1
                 if e.tick > e.co then 
                     e.tick=0
+                    e.f=0
                 end
             end
         end

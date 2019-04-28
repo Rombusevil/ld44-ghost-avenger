@@ -2,6 +2,7 @@ function game_state(lvl)
     local s={}
     local updas={}
     local draws={}
+    local zmbs={}
 
     function sword(x,y,h)
         local anim_obj=anim()
@@ -19,21 +20,33 @@ function game_state(lvl)
         end
         anim_obj:add(84,4,0.75,1,2,true,ad) --attacking
     
-        local bounds_obj=bbox(8,16)
+        local bounds_obj=bbox(8,16, 0,0,0,4)
         e:set_bounds(bounds_obj)
-        -- e.debugbounds=true
+        e.debugbounds=true
         
         function e:update()
             local xo=0
             local yo=0
             local fx=1
             if(h.flipx)fx=-1
-            if(h.atk)xo=8*fx
-            if(h.atk)yo=-3
+
+            if h.atk then
+                xo=8*fx
+                yo=-3
+
+                -- kill zombies
+                for z in all(zmbs) do
+                    if collides(z,e) then
+                        z:hurt(1)
+                    end
+                end
+            end
 
             e.flipx=h.flipx
             e:setx(h.x+xo)
             e:sety(h.y+yo)
+
+
         end
 
         function e:atk()
@@ -132,9 +145,12 @@ function game_state(lvl)
         end
 
         function e:hurt(dmg)
-            if(e.health>0)e.health-=dmg
+            if not self.flickerer.is_flickering then
+                e:flicker(10)
+                if(e.health>0)e.health-=dmg
+            end
         end
-
+        
         return e
     end
 
@@ -169,7 +185,10 @@ function game_state(lvl)
         end
 
         function e:hurt(dmg)
-            if(e.health>0)e.health-=dmg
+            if not self.flickerer.is_flickering then
+                e:flicker(10)
+                if(e.health>0)e.health-=dmg
+            end
         end
 
         return e
@@ -185,6 +204,7 @@ function game_state(lvl)
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
+        add(zmbs, e)
     
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
@@ -193,8 +213,19 @@ function game_state(lvl)
         e.arr=false -- arrived to destination
         e.ct=5      -- cool off timer
         e.tick=0
+        e.hp=3      -- hit points
         
         function e:update()
+            if e.hp <= 0 then
+                del(updas, e)
+                del(draws, e)
+                del(zmbs, e)
+                -- TODO GIVE POINTS
+                -- TOOD MAKE DEATH SOUND
+                -- TODO EXPLODE ANIM
+                return
+            end
+
             local s=0.3 -- speed
       
             -- zombie center
@@ -228,30 +259,41 @@ function game_state(lvl)
                 e:set_anim(1) -- walk
             end
 
-            if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
-                e.arr=true    -- arrived
-                e:set_anim(3) -- attack
-                t:hurt(e.dmg)
-            elseif not e.arr then
-                -- move to target
-                local ang=atan2(cx-tx,cy-ty)
-                local fx=abs(cos(ang)*s)
-                local fy=abs(sin(ang)*s)
+            if not self.flickerer.is_flickering then
+                if abs(e.x-tx)<=7 and abs(e.y-ty)<=7 then
+                    e.arr=true    -- arrived
+                    e:set_anim(3) -- attack
+                    t:hurt(e.dmg)
+                elseif not e.arr then
+                    -- move to target
+                    local ang=atan2(cx-tx,cy-ty)
+                    local fx=abs(cos(ang)*s)
+                    local fy=abs(sin(ang)*s)
 
-                if tx > e.x then
-                    e:setx(e.x+fx) e.flipx=false
-                elseif tx < e.x then
-                    e:setx(e.x-fx) e.flipx=true
-                end
+                    if tx > e.x then
+                        e:setx(e.x+fx) e.flipx=false
+                    elseif tx < e.x then
+                        e:setx(e.x-fx) e.flipx=true
+                    end
 
-                if ty > e.y then
-                    e:sety(e.y+fy)
-                elseif ty < e.y then
-                    e:sety(e.y-fy)
+                    if ty > e.y then
+                        e:sety(e.y+fy)
+                    elseif ty < e.y then
+                        e:sety(e.y-fy)
+                    end
+                else
+                    -- in cool off mode, but not close to target
+                    e:set_anim(2) -- idle
                 end
             else
-                -- in cool off mode, but not close to target
-                e:set_anim(2) -- idle
+                e:set_anim(2) -- idle/confused
+            end
+        end
+
+        function e:hurt(d)
+            if not self.flickerer.is_flickering then
+                e:flicker(15)
+                e.hp-=d
             end
         end
 
@@ -270,7 +312,7 @@ function game_state(lvl)
 
         e.tick=0
         e.f=0       -- fuse
-        e.co=fq+30  -- cool off time
+        e.co=fq+10  -- cool off time
             
         local bounds_obj=bbox(16,16)
         e:set_bounds(bounds_obj)
@@ -286,6 +328,7 @@ function game_state(lvl)
                 e.f=1
                 if e.tick > e.co then 
                     e.tick=0
+                    e.f=0
                 end
             end
         end
