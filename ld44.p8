@@ -854,7 +854,7 @@ function game_state(lvl)
             sfx(9)
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
         end
-        if zkills > 5 and bootsf then
+        if zkills > 50 and bootsf then
             bootsf=false
             sfx(9)
             local b=boots(xx,yy,h) add(updas,b) add(draws,b)
