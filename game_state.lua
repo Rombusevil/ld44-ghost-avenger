@@ -13,6 +13,7 @@ function game_state(lvl)
     local t=0       -- ticker
     local ct=0      -- clock trigger
     local p=0       -- points
+    local bootsf=true--boots powerup fuse
     music(-1)
     music(6)
 
@@ -88,10 +89,12 @@ function game_state(lvl)
         local bounds_obj=bbox(8,8,1,0,2,0)
         e:set_bounds(bounds_obj)
         e.debugbounds=false
-        e.mhealth=10 -- max health
-        e.health=10
+        e.mhealth=5 -- max health
+        e.health=5
         e.atk=false  -- is attacking
         e.swrd=sword(x,y,e)
+        e.spdb=false
+        e.spd=1
         
         function e:update()
             if(e.health > e.mhealth) e.health=e.mhealth
@@ -101,7 +104,8 @@ function game_state(lvl)
 
             -- movement
             if not e.atk then
-                local s=1
+                local s=e.spd
+                if(e.spdb)s+=1.5
                 if btn(0) then     --left
                     e:setx(e.x-s)
                     e.flipx=true
@@ -175,9 +179,9 @@ function game_state(lvl)
 
         function e:hurt(dmg)
             if not self.flickerer.is_flickering then
-                e:flicker(10)
-                if(e.health>0)e.health-=dmg
                 sfx(1)
+                e:flicker(15)
+                if(e.health>0)e.health-=dmg
             end
         end
         
@@ -191,8 +195,8 @@ function game_state(lvl)
         local e=entity(anim_obj)
         e:setpos(x,y)
         e:set_anim(1)
-        e.mhealth=100 -- max health
-        e.health=100
+        e.mhealth=10 -- max health
+        e.health=10
         e.tick=0
     
         local bounds_obj=bbox(16,16)
@@ -224,7 +228,7 @@ function game_state(lvl)
 
         function e:hurt(dmg)
             if not self.flickerer.is_flickering then
-                e:flicker(4)
+                e:flicker(15)
                 if(e.health>0)e.health-=dmg
                 sfx(2)
             end
@@ -389,7 +393,6 @@ function game_state(lvl)
         
         function e:update()
             if t % 1000 == 0 then
-                printh("fq "..e.fq)
                 e.fq-=3
                 if(e.fq < 1)e.fq=1
                 e.co=e.fq+10
@@ -516,6 +519,7 @@ function game_state(lvl)
                     del(clos, e)
                     p+=50
                     sfx(8)
+                    h.spdb=false
                 end
             end
 
@@ -530,6 +534,7 @@ function game_state(lvl)
                 end
                 e:flicker(e.expiry)
                 sfx(7)
+                h.spdb=true -- speed boost
             end
         end
     
@@ -555,6 +560,32 @@ function game_state(lvl)
                 g.health+=g.mhealth/4
                 h.health+=h.mhealth/4
                 sfx(7)
+            end
+        end
+            
+        return e
+    end
+
+    function boots(x,y,h)
+        local anim_obj=anim()
+        anim_obj:add(77,1,1,1,1)
+    
+        local e=entity(anim_obj)
+        e:setpos(x,y)
+        e:set_anim(1)
+    
+        local bounds_obj=bbox(8,8)
+        e:set_bounds(bounds_obj)
+        -- e.debugbounds=true
+        e.f=true
+        
+        function e:update()
+            if collides(h,e) and e.f then
+                del(updas, e)
+                del(draws, e)
+                h.spd+=1
+                sfx(7)
+                e.f=false
             end
         end
             
@@ -591,6 +622,7 @@ function game_state(lvl)
         -- Spawn Bomb
         if bt > 10 and bf then
             bf = false
+            sfx(9)
             local b=bomb(xx,yy,h) add(updas,b) add(draws,b)
         end
 
@@ -598,6 +630,13 @@ function game_state(lvl)
         if ct > 20 and #clos==0 then
             sfx(9)
             local c=clock(xx,yy,h) add(updas,c) add(draws,c) add(clos, c)
+        end
+
+        -- Spawn boots powerup
+        if zkills > 50 and bootsf then
+            bootsf=false
+            sfx(9)
+            local b=boots(xx,yy,h) add(updas,b) add(draws,b)
         end
 
         sort(draws)
